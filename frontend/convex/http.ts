@@ -15,4 +15,11 @@ http.route({
   handler: postUploadPerson
 })
 
+// http.route({
+//   path: "/getPersons",
+//   method: "GET",
+//   handler: getPersons,
+// })
+
+
 export default http;  

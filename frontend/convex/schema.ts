@@ -7,13 +7,13 @@ export default defineSchema({
     createdAt: v.number(),
   }),
   face_embs: defineTable({
-    personId: v.string(),
+    personId: v.id("persons"),
     emb: v.array(v.float64()),          
     createdAt: v.number(),
   }).index("by_person", ["personId"]),
   face_media: defineTable({
-    personId: v.string(),
-    imageStorageId: v.string(),
+    personId: v.id("persons"),
+    imageStorageId: v.id("_storage"),
     createdAt: v.number()
   }).index("by_person", ["personId"]),
 });
