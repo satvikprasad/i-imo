@@ -3,6 +3,7 @@ import OpenAI, { toFile } from "openai"
 
 import dotenv from "dotenv"
 import { Session } from "inspector";
+import { isRunnableFunctionWithParse } from "openai/lib/RunnableFunction";
 
 // Source env
 dotenv.config();
@@ -27,6 +28,13 @@ interface TranscriptionSession {
     chunks: Buffer[];
     transcripts: string[];
     lastActivity: number;
+}
+
+interface ParsedNameResponse {
+    isSpeakingToPerson: boolean,
+    name: string,
+    confidence: "HIGH" | "MEDIUM" | "LOW",
+    evidence: string
 }
 
 const sessions = new Map<string, TranscriptionSession>();
@@ -70,8 +78,6 @@ app.post("/omi/audio", async (req: Request, res: Response) => {
     const octetData: Buffer = req.body;
 
     if (octetData instanceof Buffer) {
-        console.log(`Recieved ${octetData.length} bytes of audio data.`);
-
         try {
             if (!sessions.has(uid as string)) {
                 sessions.set(uid as string, {
@@ -106,7 +112,34 @@ app.post("/omi/audio", async (req: Request, res: Response) => {
                 temperature: 0.0
             });
 
-            console.log(`Transcribed: ${transcription.text}.`);
+            const completion = await client.chat.completions.create({
+                messages: [
+                    {
+                        role: 'system',
+                        content: `Analyze conversations to detect if the user is speaking to a real person and extract that person\'s name.
+                        
+                        Return ONLY valid JSON:
+                        {
+                            "isSpeakingToPerson": true/false,
+                            "name": [detected name]/null,
+                            "confidence": "HIGH"/"MEDIUM"/"LOW",
+                            "evidence": "brief reason"
+                        }.
+                        
+                        DON'T format it as a code block, just raw text. 
+                        Prioritise information at the end of the conversation rather than the beginning.`
+                    },
+                    {
+                        role: 'user',
+                        content: `Conversation:\n${transcription.text}`
+                    }
+                ],
+                model: 'llama-3.3-70b-versatile',
+            });
+
+            const result = JSON.parse(completion.choices[0].message.content ?? "{}") as ParsedNameResponse;
+
+            console.log(`${result.name}: ${result.confidence} [${transcription.text}]`);
 
             res.send(200);
         } catch(error) {
