@@ -6,14 +6,14 @@ from pydantic import BaseModel
 
 app = FastAPI()
 
-origins = ["*"]  # This allows all origins
+origins = ["*"]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_credentials=True,  # Set to True if your frontend needs to send cookies or authorization headers
-    allow_methods=["*"],  # Allows all HTTP methods (GET, POST, PUT, DELETE, OPTIONS, etc.)
-    allow_headers=["*"],  # Allows all headers
+    allow_credentials=True,
+    allow_methods=["*"], 
+    allow_headers=["*"],
 )
 
 class Image(BaseModel):

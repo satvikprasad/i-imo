@@ -8,6 +8,8 @@
  * @module
  */
 
+import type * as camera from "../camera.js";
+
 import type {
   ApiFromModules,
   FilterApi,
@@ -22,7 +24,9 @@ import type {
  * const myFunctionReference = api.myModule.myFunction;
  * ```
  */
-declare const fullApi: ApiFromModules<{}>;
+declare const fullApi: ApiFromModules<{
+  camera: typeof camera;
+}>;
 declare const fullApiWithMounts: typeof fullApi;
 
 export declare const api: FilterApi<
