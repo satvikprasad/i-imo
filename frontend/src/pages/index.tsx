@@ -16,7 +16,7 @@ export default function App() {
         const imageSrc = webcamRef.current.getScreenshot();
         console.log(typeof imageSrc, imageSrc);
         
-        fetch("http://localhost:8000/upload/", {
+        fetch("http://167.99.189.49:8000/upload/", {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
