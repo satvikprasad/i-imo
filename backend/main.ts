@@ -2,7 +2,8 @@ import express, { Request, Response } from "express";
 import OpenAI, { toFile } from "openai"
 
 import dotenv from "dotenv"
-import { Session } from "inspector";
+
+import { distance } from 'fastest-levenshtein';
 
 // Source env
 dotenv.config();
@@ -56,6 +57,40 @@ function pcmToWav(pcm: Buffer, sampleRate: number) {
     return Buffer.concat([header, pcm]);
 }
 
+function mergeTranscriptions(transcripts: string[]): string {
+    if (transcripts.length === 0) return "";
+    
+    let result = transcripts[0];
+
+    for (let i = 1; i < transcripts.length; i++) {
+        const current = transcripts[i];
+        const words = current.split(' ');
+        
+        let bestOverlap = 0;
+        let bestSimilarity = 0;
+
+        // Check different overlap lengths
+        for (let overlap = 1; overlap <= Math.min(15, words.length); overlap++) {
+            const resultSuffix = result.split(' ').slice(-overlap).join(' ').toLowerCase();
+            const currentPrefix = words.slice(0, overlap).join(' ').toLowerCase();
+            
+            const similarity = 1 - (distance(resultSuffix, currentPrefix) / Math.max(resultSuffix.length, currentPrefix.length));
+            
+            if (similarity > 0.8 && similarity > bestSimilarity) {
+                bestSimilarity = similarity;
+                bestOverlap = overlap;
+            }
+        }
+
+        const newWords = words.slice(bestOverlap).join(' ');
+        if (newWords.trim()) {
+            result += ' ' + newWords;
+        }
+    }
+
+    return result.trim();
+}
+
 app.post("/omi/audio", async (req: Request, res: Response) => {
     const { sample_rate: sampleRate, uid: uid } = req.query;    
 
@@ -106,7 +141,7 @@ app.post("/omi/audio", async (req: Request, res: Response) => {
                 temperature: 0.0
             });
 
-            console.log(`Transcribed: ${transcription.text}.`);
+            console.log(`Transcribed: ${mergeTranscriptions(session.transcripts)}.`);
 
             res.send(200);
         } catch(error) {
