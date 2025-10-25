@@ -99,14 +99,33 @@ def find_best_match(emb):
         return best_pid, best_sim
     return None, best_sim
 
+def get_capture():
+    available_cameras = []
+
+    for i in range(10):
+        cap = cv2.VideoCapture(i)
+
+        if not cap.read()[0]:
+            continue
+
+        available_cameras.append(i)
+        cap.release()
+
+    print(f"Available cameras: {available_cameras}")
+
+    cam_index = int(input("Enter webcam device to open: "))
+
+    return cv2.VideoCapture(cam_index)
+
 # -----------------------------
 # Main
 # -----------------------------
 load_db()
 
-cap = cv2.VideoCapture(0)
+cap = get_capture()
+
 if not cap.isOpened():
-    raise RuntimeError("Could not open webcam (index 0).")
+    raise RuntimeError(f"Could not open webcam (index {cam_index}).")
 
 print("Controls: 'q' quit | 'a' add/name the current unknown face")
 unknown_counter = 0
