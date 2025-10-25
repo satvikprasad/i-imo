@@ -142,3 +142,5 @@ vite.config.ts.timestamp-*
 
 # Dist
 dist/
+
+/**/*.DS_Store
