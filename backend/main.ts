@@ -106,7 +106,7 @@ app.post("/omi/audio", async (req: Request, res: Response) => {
             session.chunks.push(octetData);
             session.lastActivity = Date.now();
 
-            if (session.chunks.length > 3) {
+            if (session.chunks.length > 6) {
                 session.chunks.shift();
             }
 
@@ -171,6 +171,27 @@ app.post("/omi/audio", async (req: Request, res: Response) => {
             const result = JSON.parse(completion.choices[0].message.content ?? "{}") as ParsedNameResponse;
 
             console.log(`${result.name}: ${result.confidence} [${transcription.text}]`);
+
+            if (result.name && result.confidence == "HIGH") {
+                try {
+                    const response = await fetch(
+                        "http://167.99.189.49:8000/detect",
+                        {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                            },
+                            body: JSON.stringify({
+                                name: result.name,
+                            }),
+                        }
+                    );
+
+                    console.log(await response.json());
+                } catch (error) {
+                    console.error(error);
+                }
+            }
 
             res.sendStatus(200);
         } catch(error) {
