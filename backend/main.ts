@@ -2,9 +2,10 @@ import express, { Request, Response } from "express";
 import OpenAI, { toFile } from "openai"
 
 import dotenv from "dotenv"
-import { Session } from "inspector";
-import { isRunnableFunctionWithParse } from "openai/lib/RunnableFunction";
-import { error } from "console";
+
+import { CloudClient as ChromaClient } from "chromadb";
+
+import { DefaultEmbeddingFunction } from "@chroma-core/default-embed"
 
 // Source env
 dotenv.config();
@@ -14,10 +15,16 @@ const client = new OpenAI({
     baseURL: "https://api.groq.com/openai/v1"
 })
 
+const chromaClient = new ChromaClient({
+  apiKey: process.env.CHROMA_API_KEY,
+  tenant: process.env.CHROMA_TENANT,
+  database: 'omi'
+});
+
 const app = express();
 
-app.get("/", (req: Request, res: Response) => {
-    res.send('Hello World');
+app.get("/", async (req: Request, res: Response) => {
+    res.send(200);
 });
 
 app.use(express.raw({
@@ -142,6 +149,20 @@ app.post("/omi/audio", async (req: Request, res: Response) => {
                     }
                 ],
                 model: 'llama-3.3-70b-versatile',
+            });
+
+            const collection = await chromaClient.getOrCreateCollection({
+                name: `transcriptions-${uid}`,
+                embeddingFunction: new DefaultEmbeddingFunction()
+            });
+
+            await collection.upsert({
+                documents: [
+                    transcription.text
+                ],
+                ids: [
+                    Date.now().toString()
+                ]
             });
 
             const result = JSON.parse(completion.choices[0].message.content ?? "{}") as ParsedNameResponse;
