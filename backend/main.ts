@@ -228,11 +228,11 @@ app.get("/omi/profiles", async (req, res) => {
 
     const records = await collection.get();
 
-    const completion = await client.chat.completions.create({
-        messages: [
+    const data = {
+        "messages": [
             {
-                role: "system",
-                content: `Analyse all conversations today to generate profiles for all the people I've met.
+                "role": "system",
+                "content": `Analyse all conversations today to generate profiles for all the people I've met.
 
                         My name is ${name}. Don't create a profile for myself.
 
@@ -270,8 +270,8 @@ app.get("/omi/profiles", async (req, res) => {
                         Prioritise information at the end of the conversation rather than the beginning.`,
             },
             {
-                role: "user",
-                content: `Transcriptions:\n${
+                "role": "user",
+                "content": `Transcriptions:\n${
                     JSON.stringify(records.ids.sort().map((id, index) => {
                         const record = records.documents[index];
 
@@ -283,8 +283,10 @@ app.get("/omi/profiles", async (req, res) => {
                 }`,
             },
         ],
-        model: "openai/gpt-oss-20b",
-    });
+        "model": "openai-gpt-oss-120b",
+    };
+
+    const completion = await runInference(data);
 
     return res.status(200).json(completion.choices[0].message.content);
 });
@@ -314,11 +316,12 @@ app.get("/omi/tasks", async (req, res) => {
 
     const records = await collection.get();
 
-    const completion = await client.chat.completions.create({
-        messages: [
+    const data = {
+        "model": "openai-gpt-oss-120b",
+        "messages": [
             {
-                role: "system",
-                content: `Analyse all conversations today to generate tasks that I must complete, and their potential deadline (optional).
+                "role": "system",
+                "content": `Analyse all conversations today to generate tasks that I must complete, and their potential deadline (optional).
 
                         My name is ${name}.
 
@@ -354,8 +357,8 @@ app.get("/omi/tasks", async (req, res) => {
                         Prioritise information at the end of the conversation rather than the beginning.`,
             },
             {
-                role: "user",
-                content: `Transcriptions:\n${
+                "role": "user",
+                "content": `Transcriptions:\n${
                     JSON.stringify(records.ids.sort().map((id, index) => {
                         const record = records.documents[index];
 
@@ -367,8 +370,9 @@ app.get("/omi/tasks", async (req, res) => {
                 }`,
             },
         ],
-        model: "openai/gpt-oss-20b",
-    });
+    }
+
+    const completion = await runInference(data);
 
     return res.status(200).json(completion.choices[0].message.content);
 });
