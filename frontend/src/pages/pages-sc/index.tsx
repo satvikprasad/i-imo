@@ -1,11 +1,10 @@
 import { useState, useEffect } from "react";
-import { User, Edit2, Check, X, Moon, Sun, Calendar } from "lucide-react";
+import { User, Edit2, Moon, Sun, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 interface Profile {
     name: string;
@@ -13,19 +12,18 @@ interface Profile {
     metOn: number;
 }
 
-const initialTasks = [
-    "Follow up with Satpick about the family call.",
-    "Schedule basketball game with Arrtem next week.",
-    "Coordinate UT Dallas tour with Duy Fam.",
-];
+interface Task {
+  description: string;
+  dueBy: Date | null;
+}
 
 export default function ContactDirectory() {
     const [contacts, setContacts] = useState<(Profile & {
       confirmed: boolean
     })[]>([]);
-    const [expandedId, setExpandedId] = useState<number | null>(null);
-    const [editingId, setEditingId] = useState<number | null>(null);
-    const [editedNames, setEditedNames] = useState<Record<number, string>>({});
+
+    const [tasks, setTasks] = useState<Task[]>([]);
+
     const [theme, setTheme] = useState<"light" | "dark">("light");
 
     useEffect(() => {
@@ -46,8 +44,6 @@ export default function ContactDirectory() {
         ).then(async (res) => {
             const profiles = JSON.parse(await res.json()).profiles as Profile[];
 
-            console.log(profiles);
-
             setContacts(profiles.map((p) => {
               return {
                 name: p.name,
@@ -57,6 +53,22 @@ export default function ContactDirectory() {
               };
             }))
         });
+
+        fetch(
+            "https://imo-8d4faadab8d7.herokuapp.com/omi/tasks?name=Satvik"
+        ).then(async (res) => {
+          const tasks = JSON.parse(await res.json()).tasks as {
+            description: string,
+            dueBy: number
+          }[];
+
+          setTasks(tasks.map((t) => {
+            return {
+              description: t.description,
+              dueBy: t.dueBy ? new Date(t.dueBy) : null,
+            }
+          }));
+        })
     }, []);
 
     const toggleTheme = () => {
@@ -64,28 +76,6 @@ export default function ContactDirectory() {
         setTheme(newTheme);
         localStorage.setItem("theme", newTheme);
         document.documentElement.classList.toggle("dark", newTheme === "dark");
-    };
-
-    const toggleCard = (id: number) => {
-        setExpandedId((prev) => (prev === id ? null : id));
-    };
-
-    const startEditing = (id: number, currentName: string) => {
-        setEditingId(id);
-        setEditedNames({ ...editedNames, [id]: currentName });
-    };
-
-    const handleConfirmName = (id: number) => {
-        const newName = editedNames[id];
-        const updatedContacts = contacts.map((c) =>
-            c.id === id ? { ...c, name: newName, confirmed: true } : c
-        );
-        setContacts(updatedContacts);
-        setEditingId(null);
-    };
-
-    const handleCancelEdit = () => {
-        setEditingId(null);
     };
 
     const formatDate = (date: Date) => {
@@ -154,31 +144,16 @@ export default function ContactDirectory() {
                                 )}
                             </p>
                         </div>
-                        {contacts.map((contact) => {
-                            const isExpanded = expandedId === contact.id;
-                            const isEditing = editingId === contact.id;
-
+                        {contacts.map((contact, index) => {
                             return (
                                 <Card
-                                    key={contact.id}
-                                    className={`transition-all duration-300 hover:shadow-lg cursor-pointer overflow-hidden ${
-                                        expandedId === contact.id
-                                            ? "h-auto"
-                                            : "h-25"
-                                    }`}
+                                    key={index}
+                                    className={`transition-all duration-300 hover:shadow-lg cursor-pointer overflow-hidden h-auto`}
                                 >
-                                    <CardHeader
-                                        onClick={() =>
-                                            !isEditing && toggleCard(contact.id)
-                                        }
-                                    >
+                                    <CardHeader>
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-4 flex-1">
                                                 <Avatar className="h-12 w-12">
-                                                    <AvatarImage
-                                                        src={contact.photoUrl}
-                                                        alt={contact.name}
-                                                    />
                                                     <AvatarFallback>
                                                         <User className="h-6 w-6" />
                                                     </AvatarFallback>
@@ -210,11 +185,7 @@ export default function ContactDirectory() {
                                     </CardHeader>
 
                                     <div
-                                        className={`transition-all duration-300 ease-in-out ${
-                                            isExpanded
-                                                ? "max-h-[1000px] opacity-100"
-                                                : "max-h-0 opacity-0"
-                                        }`}
+                                        className={`transition-all duration-300 ease-in-out max-h-[1000px] opacity-100`}
                                     >
                                         <CardContent className="space-y-4 pt-0">
                                             {/* Name Confirmation Section */}
@@ -228,69 +199,6 @@ export default function ContactDirectory() {
                                                                 correctly?
                                                             </div>
 
-                                                            {isEditing ? (
-                                                                <div className="flex items-center gap-2">
-                                                                    <Input
-                                                                        type="text"
-                                                                        value={
-                                                                            editedNames[
-                                                                                contact
-                                                                                    .id
-                                                                            ] ||
-                                                                            contact.name
-                                                                        }
-                                                                        onChange={(
-                                                                            e
-                                                                        ) =>
-                                                                            setEditedNames(
-                                                                                {
-                                                                                    ...editedNames,
-                                                                                    [contact.id]:
-                                                                                        e
-                                                                                            .target
-                                                                                            .value,
-                                                                                }
-                                                                            )
-                                                                        }
-                                                                        className="flex-1 text-lg font-semibold border-blue-300 focus-visible:ring-blue-500 dark:text-slate-300"
-                                                                        autoFocus
-                                                                        onClick={(
-                                                                            e
-                                                                        ) =>
-                                                                            e.stopPropagation()
-                                                                        }
-                                                                    />
-                                                                    <Button
-                                                                        onClick={(
-                                                                            e
-                                                                        ) => {
-                                                                            e.stopPropagation();
-                                                                            handleConfirmName(
-                                                                                contact.id
-                                                                            );
-                                                                        }}
-                                                                        size="icon"
-                                                                        className="bg-green-600 hover:bg-green-700 shrink-0"
-                                                                        title="Confirm"
-                                                                    >
-                                                                        <Check className="h-4 w-4" />
-                                                                    </Button>
-                                                                    <Button
-                                                                        onClick={(
-                                                                            e
-                                                                        ) => {
-                                                                            e.stopPropagation();
-                                                                            handleCancelEdit();
-                                                                        }}
-                                                                        size="icon"
-                                                                        variant="secondary"
-                                                                        className="shrink-0"
-                                                                        title="Cancel"
-                                                                    >
-                                                                        <X className="h-4 w-4" />
-                                                                    </Button>
-                                                                </div>
-                                                            ) : (
                                                                 <div className="flex items-center gap-3">
                                                                     <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">
                                                                         {
@@ -302,10 +210,6 @@ export default function ContactDirectory() {
                                                                             e
                                                                         ) => {
                                                                             e.stopPropagation();
-                                                                            startEditing(
-                                                                                contact.id,
-                                                                                contact.name
-                                                                            );
                                                                         }}
                                                                         size="icon"
                                                                         variant="ghost"
@@ -315,45 +219,6 @@ export default function ContactDirectory() {
                                                                         <Edit2 className="h-4 w-4" />
                                                                     </Button>
                                                                 </div>
-                                                            )}
-
-                                                            <div className="flex gap-2">
-                                                                <Button
-                                                                    onClick={(
-                                                                        e
-                                                                    ) => {
-                                                                        e.stopPropagation();
-                                                                        handleConfirmName(
-                                                                            contact.id
-                                                                        );
-                                                                    }}
-                                                                    size="sm"
-                                                                    className="bg-green-600 hover:bg-green-800"
-                                                                    disabled={
-                                                                        isEditing
-                                                                    }
-                                                                >
-                                                                    Correct
-                                                                </Button>
-                                                                <Button
-                                                                    onClick={(
-                                                                        e
-                                                                    ) => {
-                                                                        e.stopPropagation();
-                                                                        startEditing(
-                                                                            contact.id,
-                                                                            contact.name
-                                                                        );
-                                                                    }}
-                                                                    size="sm"
-                                                                    className="bg-red-600 hover:bg-red-800"
-                                                                    disabled={
-                                                                        isEditing
-                                                                    }
-                                                                >
-                                                                    Fix Spelling
-                                                                </Button>
-                                                            </div>
                                                         </div>
                                                     </AlertDescription>
                                                 </Alert>
@@ -371,10 +236,6 @@ export default function ContactDirectory() {
                                             {/* Photo Section */}
                                             <div className="flex justify-center">
                                                 <Avatar className="h-32 w-32 border-4 border-slate-200 dark:border-slate-700">
-                                                    <AvatarImage
-                                                        src={contact.photoUrl}
-                                                        alt={contact.name}
-                                                    />
                                                     <AvatarFallback>
                                                         <User className="h-16 w-16" />
                                                     </AvatarFallback>
@@ -409,7 +270,7 @@ export default function ContactDirectory() {
                             Tasks:
                         </h2>
                         <ul className="space-y-3 p-4 text-slate-700 dark:text-slate-300 text-lg">
-                            {initialTasks.map((task, index) => (
+                            {tasks.map((task, index) => (
                                 <li
                                     key={index}
                                     className="flex items-center-safe gap-3"
@@ -418,7 +279,7 @@ export default function ContactDirectory() {
                                         type="checkbox"
                                         className="w-5 h-5 accent-blue-600 dark:accent-blue-400"
                                     />
-                                    <span>{task}</span>
+                                    <span>{task.description} {task.dueBy != null ? <span className="font-bold text-red-500">({formatDate(task.dueBy)})</span> : <></>}</span>
                                 </li>
                             ))}
                         </ul>

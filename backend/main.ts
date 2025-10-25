@@ -289,6 +289,22 @@ app.get("/omi/profiles", async (req, res) => {
     return res.status(200).json(completion.choices[0].message.content);
 });
 
+async function runInference(data: any) {
+    const url = "https://inference.do-ai.run/v1/chat/completions";
+    const headers = {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.DIGITAL_OCEAN_API_KEY}`,
+    };
+
+    const res = await fetch(url, {
+        method: "POST",
+        headers: headers,
+        body: JSON.stringify(data),
+    })
+
+    return await res.json();
+}
+
 app.get("/omi/tasks", async (req, res) => {
     const { name } = req.query;
 
