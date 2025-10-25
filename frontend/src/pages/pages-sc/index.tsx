@@ -3,11 +3,9 @@ import { User, ChevronDown, Edit2, Check, X } from 'lucide-react';
 
 // Mock data
 const initialContacts = [
-  { id: 1, name: 'Sarah Chen', company: 'Apple', summary: 'Discussed iOS development opportunities and potential referral for SwiftUI position. Very interested in AR/VR projects.', confirmed: false },
-  { id: 2, name: 'Michael Rodriguez', company: 'Google', summary: 'Talked about ML infrastructure and TensorFlow. Offered to introduce me to his team lead.', confirmed: false },
-  { id: 3, name: 'Emma Thompson', company: 'Meta', summary: 'Conversation about React and frontend architecture. Shared tips on system design interviews.', confirmed: false },
-  { id: 4, name: 'James Kim', company: 'Stripe', summary: 'Deep dive into payment systems and API design. Mentioned they\'re hiring for backend roles.', confirmed: false },
-  { id: 5, name: 'Olivia Martinez', company: 'OpenAI', summary: 'Fascinating discussion about LLMs and prompt engineering. Very passionate about AI safety.', confirmed: false },
+  { id: 1, name: 'Satpick Prasad', summary: 'Talked about how family is, asked you to call him tomorrow afternoon', confirmed: false },
+  { id: 2, name: 'Arrtem Kim', summary: 'New person, exchanged numbers and requested to play basketball sometime next week', confirmed: false },
+  { id: 3, name: 'Duy Fam', summary: 'You asked about UT Dallas, they said they would give you a tour sometime.', confirmed: false },
 ];
 
 export default function ContactDirectory() {
@@ -152,12 +150,6 @@ export default function ContactDirectory() {
                 </div>
               )}
             </div>
-          </div>
-
-          {/* Contact Info */}
-          <div className="mb-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
-            <div className="text-sm text-slate-600 mb-1">Works at</div>
-            <div className="text-xl font-semibold text-slate-900">{selectedContact.company}</div>
           </div>
 
           {/* See Summary Button */}
