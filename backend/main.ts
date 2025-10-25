@@ -4,6 +4,7 @@ import OpenAI, { toFile } from "openai"
 import dotenv from "dotenv"
 import { Session } from "inspector";
 import { isRunnableFunctionWithParse } from "openai/lib/RunnableFunction";
+import { error } from "console";
 
 // Source env
 dotenv.config();
@@ -32,7 +33,7 @@ interface TranscriptionSession {
 
 interface ParsedNameResponse {
     isSpeakingToPerson: boolean,
-    name: string,
+    name: string | null,
     confidence: "HIGH" | "MEDIUM" | "LOW",
     evidence: string
 }
@@ -65,11 +66,17 @@ function pcmToWav(pcm: Buffer, sampleRate: number) {
 }
 
 app.post("/omi/audio", async (req: Request, res: Response) => {
-    const { sample_rate: sampleRate, uid: uid } = req.query;    
+    const { sample_rate: sampleRate, uid } = req.query;    
 
-    if (!sampleRate) {
+    const sr = Number(sampleRate);
+    
+    if (!uid || typeof uid != "string") {
+        return res.status(400).json({ error: "Missing uid" });
+    }
+
+    if (!sampleRate || Number.isNaN(sr) || sr <= 0) {
         res.status(400).json({
-            error: "Did not recieve sample rate."
+            error: "Invalid sample_rate"
         });
 
         return;
@@ -79,15 +86,15 @@ app.post("/omi/audio", async (req: Request, res: Response) => {
 
     if (octetData instanceof Buffer) {
         try {
-            if (!sessions.has(uid as string)) {
-                sessions.set(uid as string, {
+            if (!sessions.has(uid)) {
+                sessions.set(uid, {
                     chunks: [],
                     transcripts: [],
                     lastActivity: Date.now()
                 })
             }
 
-            const session = sessions.get(uid as string)!;
+            const session = sessions.get(uid)!;
 
             session.chunks.push(octetData);
             session.lastActivity = Date.now();
@@ -141,7 +148,7 @@ app.post("/omi/audio", async (req: Request, res: Response) => {
 
             console.log(`${result.name}: ${result.confidence} [${transcription.text}]`);
 
-            res.send(200);
+            res.sendStatus(200);
         } catch(error) {
             console.error(error);
 
