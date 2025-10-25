@@ -14,17 +14,18 @@ export default function App() {
     const interval = setInterval(() => {
       if (webcamRef.current) {
         const imageSrc = webcamRef.current.getScreenshot();
+        console.log(typeof imageSrc, imageSrc);
         
-        fetch("http://localhost:8000/upload", {
+        fetch("http://localhost:8000/upload/", {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
           },
           body: JSON.stringify({ image: imageSrc })
         }).then(response => {
-          if (!response.ok) {
-            console.error("Failed to upload image");
-          }
+          return response.json();
+        }).then(data => {
+          console.log("Image uploaded successfully:", data);
         }).catch(error => {
           console.error("Error uploading image:", error);
         })
