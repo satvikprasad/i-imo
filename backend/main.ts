@@ -5,7 +5,7 @@ import dotenv from "dotenv"
 
 import { CloudClient as ChromaClient } from "chromadb";
 
-import { DefaultEmbeddingFunction } from "@chroma-core/default-embed"
+import { OpenAIEmbeddingFunction } from "@chroma-core/openai";
 
 // Source env
 dotenv.config();
@@ -153,7 +153,9 @@ app.post("/omi/audio", async (req: Request, res: Response) => {
 
             const collection = await chromaClient.getOrCreateCollection({
                 name: `transcriptions-${uid}`,
-                embeddingFunction: new DefaultEmbeddingFunction()
+                embeddingFunction: new OpenAIEmbeddingFunction({
+                    modelName: "text-embedding-3-small"
+                })
             });
 
             await collection.upsert({
