@@ -1,176 +1,199 @@
-# fr_cam_db.py
-import argparse
-import time
-import pickle
-from collections import defaultdict
-
 import cv2
 import numpy as np
-import face_recognition
+import uuid
+import pickle
+import os
+from insightface.app import FaceAnalysis
 
-def parse_args():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--camera", type=int, default=0)
-    ap.add_argument("--model", type=str, default="hog", choices=["hog", "cnn"],
-                    help="face detector backend")
-    ap.add_argument("--threshold", type=float, default=0.5,
-                    help="max face distance to consider same person (typical 0.45–0.6)")
-    ap.add_argument("--scale", type=float, default=0.25,
-                    help="resize factor for speed (0.25 = quarter size)")
-    ap.add_argument("--db", type=str, default=None,
-                    help="optional path to load/save DB (pickle)")
-    ap.add_argument("--mirror", action="store_true",
-                    help="flip webcam horizontally")
-    return ap.parse_args()
+# -----------------------------
+# Config
+# -----------------------------
+PROVIDERS = ['CPUExecutionProvider']   # change to ['CUDAExecutionProvider'] if CUDA works for you
+MODEL_NAME = 'buffalo_l'
+THRESHOLD = 0.65                       # cosine similarity; try 0.55–0.75 depending on your camera/lighting
+DETECTION_CONFIDENCE = 0.4
+MAX_EMBS_PER_PERSON = 10
+DB_PATH = "faces_db.pkl"
 
-class FaceDB:
-    """
-    Simple in-memory DB:
-      people: { pid: {'encodings': [128-d np arrays], 'seen': int, 'last': ts } }
-    Matching: pick person with minimal distance across all encodings; accept if < threshold.
-    """
-    def __init__(self, threshold=0.5, data=None):
-        self.threshold = threshold
-        if data is None:
-            self.people = {}
-            self.next_pid = 0
-        else:
-            self.people = data["people"]
-            self.next_pid = data["next_pid"]
+# Behavior toggles
+AUTO_ADD_ENABLED = True                # True => will add after several frames of "Unknown"
+AUTO_ADD_AFTER = 8                     # frames the same unknown must persist before adding
+ASK_NAME_ON_AUTO_ADD = True            # prompt for name instead of default Person_X
+ONLY_CLOSEST_FACE = True               # process only the largest face in the frame
 
-    def match(self, enc):
-        best_pid, best_dist = None, 1e9
-        for pid, entry in self.people.items():
-            # Compare to all stored encodings; use the minimum distance
-            dists = face_recognition.face_distance(entry['encodings'], enc)
-            if len(dists) == 0: 
-                continue
-            d = float(np.min(dists))
-            if d < best_dist:
-                best_dist, best_pid = d, pid
-        if best_dist <= self.threshold:
-            return best_pid, best_dist
-        return None, best_dist
+# -----------------------------
+# Init model
+# -----------------------------
+app = FaceAnalysis(name=MODEL_NAME, providers=PROVIDERS)
+app.prepare(ctx_id=-1 if PROVIDERS == ['CPUExecutionProvider'] else 0, det_size=(640, 640))
 
-    def add_observation(self, pid, enc):
-        self.people[pid]['encodings'].append(enc)
-        self.people[pid]['seen'] += 1
-        self.people[pid]['last'] = time.time()
+# -----------------------------
+# Helpers
+# -----------------------------
+def l2_normalize(v, eps=1e-12):
+    n = np.linalg.norm(v)
+    return v if n < eps else v / n
 
-    def register(self, enc):
-        pid = self.next_pid
-        self.next_pid += 1
-        self.people[pid] = {
-            'encodings': [enc],
-            'seen': 1,
-            'last': time.time(),
+def cosine_similarity(a, b):
+    return float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b)))
+
+def new_person_id():
+    return str(uuid.uuid4())[:8]
+
+# -----------------------------
+# DB: {pid: {"name": str, "embs": [np.ndarray], "avg": np.ndarray}}
+# -----------------------------
+db = {}
+name_to_id = {}
+
+def save_db(path=DB_PATH):
+    safe = {}
+    for pid, info in db.items():
+        safe[pid] = {
+            "name": info["name"],
+            "embs": [e.astype(np.float32) for e in info["embs"]],
+            "avg": info["avg"].astype(np.float32)
         }
-        return pid
+    with open(path, "wb") as f:
+        pickle.dump(safe, f)
+    print(f"[DB] Saved to {path} (people: {len(db)})")
 
-    def to_dict(self):
-        return {"people": self.people, "next_pid": self.next_pid}
+def load_db(path=DB_PATH):
+    global db, name_to_id
+    if not os.path.exists(path):
+        print("[DB] No existing DB; starting fresh.")
+        return
+    with open(path, "rb") as f:
+        data = pickle.load(f)
+    db = {}
+    name_to_id = {}
+    for pid, info in data.items():
+        embs = [np.array(e, dtype=np.float32) for e in info["embs"]]
+        avg = np.array(info["avg"], dtype=np.float32)
+        db[pid] = {"name": info["name"], "embs": embs, "avg": avg}
+        name_to_id[info["name"]] = pid
+    print(f"[DB] Loaded {len(db)} people from {path}")
 
-def main():
-    args = parse_args()
+def add_embedding_to_person(pid, emb):
+    info = db[pid]
+    info["embs"].append(emb)
+    if len(info["embs"]) > MAX_EMBS_PER_PERSON:
+        info["embs"] = info["embs"][-MAX_EMBS_PER_PERSON:]
+    info["avg"] = l2_normalize(np.mean(np.stack(info["embs"], axis=0), axis=0))
 
-    # Load DB if provided
-    db = FaceDB(threshold=args.threshold)
-    if args.db:
-        try:
-            with open(args.db, "rb") as f:
-                data = pickle.load(f)
-            db = FaceDB(threshold=args.threshold, data=data)
-            print(f"[INFO] Loaded DB from {args.db} with {len(db.people)} people.")
-        except Exception:
-            print(f"[WARN] Could not load DB from {args.db}; starting fresh.")
+def create_person(name, emb):
+    pid = new_person_id()
+    db[pid] = {"name": name, "embs": [emb], "avg": l2_normalize(emb)}
+    name_to_id[name] = pid
+    print(f"[DB] Created '{name}' (id={pid}).")
+    save_db()
+    return pid
 
-    cap = cv2.VideoCapture(args.camera)
-    if not cap.isOpened():
-        raise RuntimeError(f"Cannot open camera index {args.camera}")
-    print("Press 'q' to quit, 's' to print DB summary, 'w' to save DB (if --db provided).")
+def find_best_match(emb):
+    best_pid, best_sim = None, -1.0
+    for pid, info in db.items():
+        sim = cosine_similarity(emb, info["avg"])
+        if sim > best_sim:
+            best_pid, best_sim = pid, sim
+    if best_sim >= THRESHOLD:
+        return best_pid, best_sim
+    return None, best_sim
 
-    font = cv2.FONT_HERSHEY_SIMPLEX
-    frame_count = 0
+# -----------------------------
+# Main
+# -----------------------------
+load_db()
 
-    try:
-        while True:
-            ok, frame_bgr = cap.read()
-            if not ok:
+cap = cv2.VideoCapture(0)
+if not cap.isOpened():
+    raise RuntimeError("Could not open webcam (index 0).")
+
+print("Controls: 'q' quit | 'a' add/name the current unknown face")
+unknown_counter = 0
+last_unknown_emb = None
+
+try:
+    while True:
+        ok, frame = cap.read()
+        if not ok:
+            break
+
+        rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        faces = app.get(rgb)
+
+        if len(faces) == 0:
+            cv2.imshow("InsightFace Webcam", frame)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
-            if args.mirror:
-                frame_bgr = cv2.flip(frame_bgr, 1)
+            continue
 
-            # speed: optionally downscale
-            small = cv2.resize(frame_bgr, (0, 0), fx=args.scale, fy=args.scale)
-            rgb_small = small[:, :, ::-1]  # BGR -> RGB
+        # choose only the closest face if requested
+        if ONLY_CLOSEST_FACE:
+            faces = [max(faces, key=lambda f: (f.bbox[2]-f.bbox[0])*(f.bbox[3]-f.bbox[1]))]
 
-            # detect + encode
-            boxes = face_recognition.face_locations(rgb_small, model=args.model)
-            encodings = face_recognition.face_encodings(rgb_small, boxes)
+        # we process the single chosen face
+        face = faces[0]
+        conf = float(getattr(face, "det_score", 1.0))
+        if conf < DETECTION_CONFIDENCE:
+            cv2.imshow("InsightFace Webcam", frame)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+            continue
 
-            # For each face
-            for (top, right, bottom, left), enc in zip(boxes, encodings):
-                # Match against DB
-                pid, dist = db.match(enc)
-                new_person = False
-                if pid is None:
-                    # Register immediately; next frames will match this person
-                    pid = db.register(enc)
-                    new_person = True
-                else:
-                    # Occasionally enrich encodings to improve robustness
-                    if (db.people[pid]['seen'] % 5) == 0:
-                        db.add_observation(pid, enc)
+        emb = l2_normalize(np.array(face.embedding, dtype=np.float32))
+        pid, sim = find_best_match(emb)
+        l, t, r, b = [int(x) for x in face.bbox]
+
+        if pid is not None:
+            # recognized -> update with new embedding (helps adaptation)
+            add_embedding_to_person(pid, emb)
+            name = db[pid]["name"]
+            label = f"{name}  sim:{sim:.2f}"
+            color = (0, 200, 0)
+            last_unknown_emb = None
+            unknown_counter = 0
+        else:
+            # unknown
+            label = f"Unknown  sim:{sim:.2f}"
+            color = (0, 0, 255)
+            last_unknown_emb = emb
+
+            if AUTO_ADD_ENABLED:
+                unknown_counter += 1
+                if unknown_counter >= AUTO_ADD_AFTER:
+                    if ASK_NAME_ON_AUTO_ADD:
+                        typed = input("New face detected. Enter name (or leave empty for default): ").strip()
+                        person_name = typed if typed else f"Person_{len(db)+1}"
                     else:
-                        db.people[pid]['seen'] += 1
-                        db.people[pid]['last'] = time.time()
+                        person_name = f"Person_{len(db)+1}"
+                    create_person(person_name, emb)
+                    label = f"{person_name} (added)"
+                    color = (0, 120, 255)
+                    unknown_counter = 0
 
-                # Scale boxes back to original frame size
-                inv = 1.0 / args.scale
-                t, r, b, l = int(top*inv), int(right*inv), int(bottom*inv), int(left*inv)
+        cv2.rectangle(frame, (l, t), (r, b), color, 2)
+        cv2.putText(frame, label, (l, max(20, t - 10)),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
 
-                color = (0, 200, 0) if not new_person else (0, 0, 255)
-                label = f"ID {pid}" + ("" if not new_person else " (new)")
-                if dist < 1e9:
-                    label += f" d={dist:.2f}"
+        cv2.imshow("InsightFace Webcam (q quit, a add/name)", frame)
+        key = cv2.waitKey(1) & 0xFF
 
-                cv2.rectangle(frame_bgr, (l, t), (r, b), color, 2)
-                cv2.putText(frame_bgr, label, (l, max(20, t - 8)),
-                            font, 0.6, (255, 255, 255), 2)
+        if key == ord('q'):
+            break
+        elif key == ord('a') and last_unknown_emb is not None:
+            typed = input("Enter name for this person: ").strip()
+            person_name = typed if typed else f"Person_{len(db)+1}"
+            if person_name in name_to_id:
+                add_embedding_to_person(name_to_id[person_name], last_unknown_emb)
+                print(f"[DB] Added embedding to existing '{person_name}'.")
+                save_db()
+            else:
+                create_person(person_name, last_unknown_emb)
+            unknown_counter = 0
 
-            # HUD
-            cv2.putText(frame_bgr, f"DB size: {len(db.people)}", (10, 28),
-                        font, 0.7, (255, 255, 255), 2)
-
-            cv2.imshow("face_recognition DB (webcam)", frame_bgr)
-            key = cv2.waitKey(1) & 0xFF
-            if key == ord('q'):
-                break
-            if key == ord('s'):
-                print("=== DB STATUS ===")
-                for pid, e in db.people.items():
-                    print(f"ID {pid:3d} | encodings {len(e['encodings'])} | seen {e['seen']:3d} | last {time.ctime(e['last'])}")
-                print("=================")
-            if key == ord('w') and args.db:
-                try:
-                    with open(args.db, "wb") as f:
-                        pickle.dump(db.to_dict(), f)
-                    print(f"[INFO] Saved DB to {args.db}")
-                except Exception as ex:
-                    print(f"[ERROR] Save failed: {ex}")
-
-            frame_count += 1
-    finally:
-        cap.release()
-        cv2.destroyAllWindows()
-        # autosave on exit if path provided
-        if args.db:
-            try:
-                with open(args.db, "wb") as f:
-                    pickle.dump(db.to_dict(), f)
-                print(f"[INFO] Saved DB to {args.db}")
-            except Exception as ex:
-                print(f"[ERROR] Final save failed: {ex}")
-
-if __name__ == "__main__":
-    main()
+finally:
+    cap.release()
+    cv2.destroyAllWindows()
+    print("\nFinal DB:")
+    for pid, info in db.items():
+        print(f"{pid}: {info['name']} (embs={len(info['embs'])})")
