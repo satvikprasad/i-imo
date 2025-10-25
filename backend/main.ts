@@ -154,7 +154,8 @@ app.post("/omi/audio", async (req: Request, res: Response) => {
             const collection = await chromaClient.getOrCreateCollection({
                 name: `transcriptions-${uid}`,
                 embeddingFunction: new OpenAIEmbeddingFunction({
-                    modelName: "text-embedding-3-small"
+                    modelName: "text-embedding-3-small",
+                    apiKey: process.env.OPENAI_API_KEY
                 })
             });
 
