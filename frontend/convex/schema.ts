@@ -22,6 +22,6 @@ export default defineSchema({
 
 	tasks: defineTable({
 		description: v.string(),
-		dueBy: v.number()
+		dueBy: v.optional(v.number())
 	})
 });

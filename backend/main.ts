@@ -229,7 +229,7 @@ app.get("/omi/profiles", async (req, res) => {
     const records = await collection.get();
 
     if (!profiles) {
-        return res.status(500).end();
+        profiles = [];
     }
 
     if (!Array.isArray(profiles)) {
@@ -360,7 +360,11 @@ async function runInference(data: any) {
 }
 
 app.get("/omi/tasks", async (req, res) => {
-    const { name } = req.query;
+    let { name, curr_tasks: currTasks } = req.query;
+
+    if (!currTasks) {
+        currTasks = [];
+    }
 
     const collection = await chromaClient.getCollection({
         name: "transcriptions",
@@ -368,12 +372,20 @@ app.get("/omi/tasks", async (req, res) => {
 
     const records = await collection.get();
 
+    if (!Array.isArray(currTasks)) {
+        currTasks = [currTasks];
+    }
+
     const data = {
         model: "llama3.3-70b-instruct",
         messages: [
             {
                 role: "system",
-                content: `Analyse all conversations today to generate tasks that I must complete, and their potential deadline (optional).
+                content: `Analyse all conversations today to generate tasks that I must complete, and their potential deadline (optional). I already have the following tasks:
+
+                        \`\`\`json
+                        ${JSON.stringify(currTasks)}
+                        \`\`\`
 
                         My name is ${name}.
 
@@ -405,7 +417,7 @@ app.get("/omi/tasks", async (req, res) => {
                         DON'T refer to your role as a transcription. You have to provide a natural summary from a third-person, omniscient perspective. Keep tasks
                         short and simple.
                         
-                        DON'T format it as a code block, just raw text. 
+                        DON'T format it as a code block, just raw text. No inline math in the JSON.
                         Prioritise information at the end of the conversation rather than the beginning.`,
             },
             {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { User, Moon, Sun, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,11 +20,12 @@ interface Task {
 }
 
 export default function ContactDirectory() {
-    const [tasks, setTasks] = useState<Task[]>([]);
-
-    const contacts = useQuery(api.profile.getProfiles, {}) || [];
+    const contacts = useQuery(api.profile.getProfiles, {});
+    const tasks = useQuery(api.task.getTasks, {});
 
     const updateProfiles = useMutation(api.profile.updateProfiles);
+
+	const createTasks = useMutation(api.task.createTasks);
 
     const [theme, setTheme] = useState<"light" | "dark">("light");
     const [chatMessages, setChatMessages] = useState<
@@ -48,15 +49,6 @@ export default function ContactDirectory() {
                 savedTheme === "dark"
             );
         }
-
-        fetch(
-            "https://imo-8d4faadab8d7.herokuapp.com/omi/tasks?name=Satvik"
-        ).then(async (res) => {
-            const tasks = JSON.parse(await res.json()).tasks as {
-                description: string;
-                dueBy: number;
-            }[];
-        });
     }, []);
 
     const handleSendMessage = async () => {
@@ -115,9 +107,73 @@ export default function ContactDirectory() {
         });
     };
 
+    const reIndexProfiles = useCallback(async () => {
+        if (indexingProfiles) return;
+
+        const params = new URLSearchParams();
+
+        contacts?.forEach((c) => {
+            params.append(`profiles`, c.name);
+        });
+
+        setIndexingProfiles(true);
+
+		const endpoint = `https://imo-8d4faadab8d7.herokuapp.com/omi/profiles?name=Satvik`;
+
+        fetch(
+            `${endpoint}${(contacts && contacts.length > 0) ? `&${params.toString()}` : ""}`
+        ).then(async (res) => {
+            const profiles = JSON.parse(await res.json()).profiles as Profile[];
+
+            updateProfiles({
+                profiles: profiles,
+            });
+
+            setIndexingProfiles(false);
+        });
+    }, [indexingProfiles, contacts]);
+
+    const regenerateTasks = useCallback(async () => {
+        const currTasks = new URLSearchParams();
+
+		tasks?.forEach((t) => {
+			currTasks.append('curr_tasks', t.description);
+		})
+
+		const endpoint = 'https://imo-8d4faadab8d7.herokuapp.com/omi/tasks?name=Satvik';
+
+		const url = `${endpoint}${(tasks && tasks.length > 0) ? `&${currTasks.toString()}` : ""}`;
+
+		console.log(url);
+
+        fetch(
+			url
+        ).then(async (res) => {
+			console.log(res);
+
+			const json = await res.json();
+
+			console.log(json);
+
+            const newTasks = JSON.parse(json).tasks as {
+                description: string;
+                dueBy: number;
+            }[];
+
+			createTasks({ tasks: newTasks.map((t) => {
+				return {
+					description: t.description,
+					dueBy: t.dueBy ? t.dueBy : undefined
+				}
+			}) });
+        });
+    }, []);
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-8">
-            <div className="max-w-7xl mx-auto">
+			{
+				contacts && tasks ? 
+            <div className="max-w-7xl mx-auto"> 
                 {/* Header */}
                 <div className="text-center mb-12 relative">
                     <Button
@@ -154,31 +210,7 @@ export default function ContactDirectory() {
                             </p>
                             <Button
                                 className="ml-auto hover:cursor-pointer"
-                                onClick={async () => {
-                                    if (indexingProfiles) return;
-
-                                    const params = new URLSearchParams();
-
-                                    contacts.forEach((c) => {
-                                        params.append(`profiles`, c.name);
-                                    });
-
-                                    setIndexingProfiles(true);
-
-                                    fetch(
-                                        `https://imo-8d4faadab8d7.herokuapp.com/omi/profiles?name=Satvik&${params.toString()}`
-                                    ).then(async (res) => {
-                                        const profiles = JSON.parse(
-                                            await res.json()
-                                        ).profiles as Profile[];
-
-                                        updateProfiles({
-                                            profiles: profiles,
-                                        });
-
-                                        setIndexingProfiles(false);
-                                    });
-                                }}
+                                onClick={reIndexProfiles}
                             >
                                 Re-index Profiles
                                 <ArrowPathIcon
@@ -387,7 +419,12 @@ export default function ContactDirectory() {
                         </Card>
                     </div>
                 </div>
-            </div>
+            </div> : <div className="h-screen flex-col flex">
+				<div className="flex flex-col items-center m-auto text-slate-200 gap-3 text-xl">
+					<h5 className="text-slate-400 animate-bounce">Loading...</h5>
+					<ArrowPathIcon className="h-15 animate-spin"/>
+				</div>
+			</div>}
         </div>
     );
 }

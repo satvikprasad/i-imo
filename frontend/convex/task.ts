@@ -2,10 +2,10 @@ import { mutation, query } from "./_generated/server";
 
 import {v} from "convex/values";
 
-const createTasks = mutation({
+export const createTasks = mutation({
     args: {tasks: v.array(v.object({
         description: v.string(),
-        dueBy: v.number()
+        dueBy: v.optional(v.number())
     }))},
 
     async handler(ctx, args) {
@@ -20,7 +20,7 @@ const createTasks = mutation({
     },
 })
 
-const getTasks = query({
+export const getTasks = query({
     args: {},
 
     async handler(ctx, _) {
