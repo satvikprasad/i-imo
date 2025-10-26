@@ -5,7 +5,7 @@ import {v} from "convex/values";
 export const createTasks = mutation({
     args: {tasks: v.array(v.object({
         description: v.string(),
-        dueBy: v.number()
+        dueBy: v.optional(v.number())
     }))},
 
     async handler(ctx, args) {

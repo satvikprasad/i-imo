@@ -19,8 +19,8 @@ interface Task {
 }
 
 export default function ContactDirectory() {
-    const contacts = useQuery(api.profile.getProfiles, {}) || [];
-    const tasks = useQuery(api.task.getTasks, {}) || [];
+    const contacts = useQuery(api.profile.getProfiles, {});
+    const tasks = useQuery(api.task.getTasks, {});
 
     const updateProfiles = useMutation(api.profile.updateProfiles);
 
@@ -111,7 +111,7 @@ export default function ContactDirectory() {
 
         const params = new URLSearchParams();
 
-        contacts.forEach((c) => {
+        contacts?.forEach((c) => {
             params.append(`profiles`, c.name);
         });
 
@@ -120,7 +120,7 @@ export default function ContactDirectory() {
 		const endpoint = `https://imo-8d4faadab8d7.herokuapp.com/omi/profiles?name=Satvik`;
 
         fetch(
-            endpoint + (contacts.length > 0) ? `&${params.toString()}` : ""
+            endpoint + (contacts && contacts.length > 0) ? `&${params.toString()}` : ""
         ).then(async (res) => {
             const profiles = JSON.parse(await res.json()).profiles as Profile[];
 
@@ -135,13 +135,13 @@ export default function ContactDirectory() {
     const regenerateTasks = useCallback(async () => {
         const currTasks = new URLSearchParams();
 
-		tasks.forEach((t) => {
+		tasks?.forEach((t) => {
 			currTasks.append('curr_tasks', t.description);
 		})
 
 		const endpoint = 'https://imo-8d4faadab8d7.herokuapp.com/omi/tasks?name=Satvik';
 
-		const url = `${endpoint}${(tasks.length > 0) ? `&${currTasks.toString()}` : ""}`;
+		const url = `${endpoint}${(tasks && tasks.length > 0) ? `&${currTasks.toString()}` : ""}`;
 
 		console.log(url);
 
@@ -159,13 +159,20 @@ export default function ContactDirectory() {
                 dueBy: number;
             }[];
 
-			createTasks({ tasks: newTasks });
+			createTasks({ tasks: newTasks.map((t) => {
+				return {
+					description: t.description,
+					dueBy: t.dueBy ? t.dueBy : undefined
+				}
+			}) });
         });
     }, []);
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-8">
-            <div className="max-w-7xl mx-auto">
+			{
+				contacts && tasks ? 
+            <div className="max-w-7xl mx-auto"> 
                 {/* Header */}
                 <div className="text-center mb-12 relative">
                     <Button
@@ -311,7 +318,7 @@ export default function ContactDirectory() {
                                         {task.description}{" "}
                                         {task.dueBy != null ? (
                                             <span className="font-bold text-red-500">
-                                                ({formatDate(task.dueBy)})
+                                                ({formatDate(new Date(task.dueBy))})
                                             </span>
                                         ) : (
                                             <></>
@@ -411,7 +418,12 @@ export default function ContactDirectory() {
                         </Card>
                     </div>
                 </div>
-            </div>
+            </div> : <div className="h-screen flex-col flex">
+				<div className="flex flex-col items-center m-auto text-slate-200 gap-3 text-xl">
+					<h5 className="text-slate-400 animate-bounce">Loading...</h5>
+					<ArrowPathIcon className="h-15 animate-spin"/>
+				</div>
+			</div>}
         </div>
     );
 }
