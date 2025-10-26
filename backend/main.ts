@@ -226,8 +226,6 @@ app.get("/omi/profiles", async (req, res) => {
         name: "transcriptions",
     });
 
-    console.log(profiles, req.query);
-
     const records = await collection.get();
 
     if (!profiles) {
@@ -295,7 +293,7 @@ app.get("/omi/profiles", async (req, res) => {
                 }`,
             },
         ],
-        "model": "openai-gpt-oss-20b",
+        "model": "llama3.3-70b-instruct",
     };
 
     const completion = await runInference(data);
@@ -331,7 +329,7 @@ app.get("/omi/tasks", async (req, res) => {
     const records = await collection.get();
 
     const data = {
-        "model": "openai-gpt-oss-20b",
+        "model": "llama3.3-70b-instruct",
         "messages": [
             {
                 "role": "system",
