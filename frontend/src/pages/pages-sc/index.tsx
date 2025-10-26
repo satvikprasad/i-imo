@@ -117,8 +117,10 @@ export default function ContactDirectory() {
 
         setIndexingProfiles(true);
 
+		const endpoint = `https://imo-8d4faadab8d7.herokuapp.com/omi/profiles?name=Satvik`;
+
         fetch(
-            `https://imo-8d4faadab8d7.herokuapp.com/omi/profiles?name=Satvik&${params.toString()}`
+            endpoint + (contacts.length > 0) ? `&${params.toString()}` : ""
         ).then(async (res) => {
             const profiles = JSON.parse(await res.json()).profiles as Profile[];
 
@@ -137,8 +139,10 @@ export default function ContactDirectory() {
 			currTasks.append('curr_tasks', t.description);
 		})
 
+		const endpoint = 'https://imo-8d4faadab8d7.herokuapp.com/omi/tasks?name=Satvik';
+
         fetch(
-            `https://imo-8d4faadab8d7.herokuapp.com/omi/tasks?name=Satvik&${currTasks.toString()}`
+			endpoint + (tasks.length > 0) ? `&${currTasks.toString()}` : ""
         ).then(async (res) => {
             const newTasks = JSON.parse(await res.json()).tasks as {
                 description: string;

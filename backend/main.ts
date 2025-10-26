@@ -229,7 +229,7 @@ app.get("/omi/profiles", async (req, res) => {
     const records = await collection.get();
 
     if (!profiles) {
-        return res.status(500).end();
+        profiles = [];
     }
 
     if (!Array.isArray(profiles)) {
@@ -363,7 +363,7 @@ app.get("/omi/tasks", async (req, res) => {
     let { name, curr_tasks: currTasks } = req.query;
 
     if (!currTasks) {
-        return res.send(400).end();
+        currTasks = [];
     }
 
     const collection = await chromaClient.getCollection({
