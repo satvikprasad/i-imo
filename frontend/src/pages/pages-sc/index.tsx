@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { User, Moon, Sun, Calendar, RectangleEllipsisIcon } from "lucide-react";
+import { User, Moon, Sun, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -8,16 +8,10 @@ import { useMutation, useQuery } from "convex/react";
 import CameraComponent from "@/components/CameraComponent";
 
 import { ArrowPathIcon } from "@heroicons/react/24/solid";
-import { Arrow } from "@radix-ui/react-context-menu";
 
 interface Profile {
     name: string;
     conversationSummary: string;
-}
-
-interface Task {
-    description: string;
-    dueBy: Date | null;
 }
 
 interface Meeting {
@@ -57,7 +51,7 @@ export default function ContactDirectory() {
         {
             id: "1",
             title: "Algorithm Design Review",
-            contactName: contacts && contacts.length > 0 ? contacts[0].name : "Prof. Smith",
+            contactName: "Artem Kim",
             date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // 2 days from now
             time: "2:00 PM",
             description: "Review dynamic programming solutions for final project"
@@ -65,7 +59,7 @@ export default function ContactDirectory() {
         {
             id: "2",
             title: "Hackathon Team Meeting",
-            contactName: contacts && contacts.length > 1 ? contacts[1].name : "Alex Chen",
+            contactName: "John",
             date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 days from now
             time: "6:00 PM",
             description: "Plan tech stack and architecture for CalHacks project"
@@ -73,7 +67,7 @@ export default function ContactDirectory() {
         {
             id: "3",
             title: "Thesis Advisor Meeting",
-            contactName: contacts && contacts.length > 0 ? contacts[0].name : "Dr. Johnson",
+            contactName: "Dr. Dewey",
             date: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000), // 5 days from now
             time: "10:00 AM",
             description: "Discuss machine learning model results and next steps"
@@ -81,7 +75,7 @@ export default function ContactDirectory() {
         {
             id: "4",
             title: "Software Engineering Study Group",
-            contactName: contacts && contacts.length > 1 ? contacts[1].name : "Sarah Lee",
+            contactName: "Sheven Chap",
             date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
             time: "4:00 PM",
             description: "Review system design patterns and prepare for midterm"
@@ -262,12 +256,21 @@ export default function ContactDirectory() {
             {contacts && tasks ? (
                 <div className="max-w-7xl mx-auto">
                     {/* Header */}
-                    <div className="text-center mb-12 relative">
+                    <div className="text-center items-center mb-12 grid grid-cols-3">
+                        <p className="mr-auto text-lg text-slate-500">Logged in as <span className="underline">Satvik</span>.</p>
+                        <div className="flex flex-col">
+                            <h1 className="text-5xl font-bold text-slate-900 dark:text-slate-100 mb-2">
+                                IMO Network
+                            </h1>
+                            <p className="text-slate-600 dark:text-slate-400 text-lg">
+                                People Made Easy
+                            </p>
+                        </div>
                         <Button
                             onClick={toggleTheme}
                             variant="outline"
                             size="icon"
-                            className="absolute right-0 top-0"
+                            className="ml-auto"
                         >
                             {theme === "light" ? (
                                 <Moon className="h-5 w-5" />
@@ -275,12 +278,6 @@ export default function ContactDirectory() {
                                 <Sun className="h-5 w-5" />
                             )}
                         </Button>
-                        <h1 className="text-5xl font-bold text-slate-900 dark:text-slate-100 mb-2">
-                            IMO Network
-                        </h1>
-                        <p className="text-slate-600 dark:text-slate-400 text-lg">
-                            People Made Easy
-                        </p>
                     </div>
 
                     <div className="grid grid-cols-2 gap-8">
@@ -317,9 +314,13 @@ export default function ContactDirectory() {
                                                 <div className="flex items-center gap-4 flex-1">
                                                     <Avatar className="h-12 w-12">
                                                         {images?.thumbnailUrl ? (
-                                                            <img 
-                                                                src={images.thumbnailUrl} 
-                                                                alt={contact.name}
+                                                            <img
+                                                                src={
+                                                                    images.thumbnailUrl
+                                                                }
+                                                                alt={
+                                                                    contact.name
+                                                                }
                                                                 className="h-full w-full object-cover"
                                                             />
                                                         ) : (
@@ -358,9 +359,13 @@ export default function ContactDirectory() {
                                                 <div className="flex justify-center">
                                                     <Avatar className="h-32 w-32 border-4 border-slate-200 dark:border-slate-700">
                                                         {images?.imageUrl ? (
-                                                            <img 
-                                                                src={images.imageUrl} 
-                                                                alt={contact.name}
+                                                            <img
+                                                                src={
+                                                                    images.imageUrl
+                                                                }
+                                                                alt={
+                                                                    contact.name
+                                                                }
                                                                 className="h-full w-full object-cover"
                                                             />
                                                         ) : (
@@ -410,15 +415,23 @@ export default function ContactDirectory() {
                                     {meetings.length === 0 ? (
                                         <div className="text-center py-12 text-slate-500 dark:text-slate-400">
                                             <Calendar className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                                            <p className="text-lg">No meetings scheduled</p>
-                                            <p className="text-sm">Your meetings will appear here</p>
+                                            <p className="text-lg">
+                                                No meetings scheduled
+                                            </p>
+                                            <p className="text-sm">
+                                                Your meetings will appear here
+                                            </p>
                                         </div>
                                     ) : (
                                         <div className="space-y-3">
                                             {meetings.map((meeting) => (
                                                 <div
                                                     key={meeting.id}
-                                                    onClick={() => setSelectedMeeting(meeting)}
+                                                    onClick={() =>
+                                                        setSelectedMeeting(
+                                                            meeting
+                                                        )
+                                                    }
                                                     className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 rounded-lg border border-blue-200 dark:border-blue-800 hover:shadow-md transition-all cursor-pointer"
                                                 >
                                                     <div className="flex items-start justify-between mb-2">
@@ -430,13 +443,25 @@ export default function ContactDirectory() {
                                                     <div className="text-sm text-slate-600 dark:text-slate-400 space-y-1">
                                                         <p className="flex items-center gap-2">
                                                             <User className="h-4 w-4" />
-                                                            <span className="font-medium">with {meeting.contactName}</span>
+                                                            <span className="font-medium">
+                                                                with{" "}
+                                                                {
+                                                                    meeting.contactName
+                                                                }
+                                                            </span>
                                                         </p>
                                                         <p>
-                                                            <span className="font-medium">{formatDate(meeting.date)}</span> at {meeting.time}
+                                                            <span className="font-medium">
+                                                                {formatDate(
+                                                                    meeting.date
+                                                                )}
+                                                            </span>{" "}
+                                                            at {meeting.time}
                                                         </p>
                                                         <p className="text-slate-500 dark:text-slate-500 italic">
-                                                            {meeting.description}
+                                                            {
+                                                                meeting.description
+                                                            }
                                                         </p>
                                                     </div>
                                                 </div>
@@ -453,9 +478,12 @@ export default function ContactDirectory() {
                                         <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-6">
                                             Tasks
                                         </h2>
-                                        <Button className="ml-auto hover:cursor-pointer" onClick={regenerateTasks}>
+                                        <Button
+                                            className="ml-auto hover:cursor-pointer"
+                                            onClick={regenerateTasks}
+                                        >
                                             Regenerate Tasks
-                                            <ArrowPathIcon/>
+                                            <ArrowPathIcon />
                                         </Button>
                                     </div>
 
@@ -638,9 +666,14 @@ export default function ContactDirectory() {
                             <div className="mb-6 space-y-2 text-slate-600 dark:text-slate-400">
                                 <div className="flex items-center gap-2">
                                     <Calendar className="h-5 w-5" />
-                                    <span>{formatDate(selectedMeeting.date)} at {selectedMeeting.time}</span>
+                                    <span>
+                                        {formatDate(selectedMeeting.date)} at{" "}
+                                        {selectedMeeting.time}
+                                    </span>
                                 </div>
-                                <p className="text-sm italic">{selectedMeeting.description}</p>
+                                <p className="text-sm italic">
+                                    {selectedMeeting.description}
+                                </p>
                             </div>
 
                             <div className="border-t border-slate-200 dark:border-slate-700 pt-6">

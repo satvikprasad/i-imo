@@ -112,7 +112,7 @@ app.post("/omi/audio", async (req: Request, res: Response) => {
             session.chunks.push(octetData);
             session.lastActivity = Date.now();
 
-            if (session.chunks.length > 6) {
+            if (session.chunks.length > 3) {
                 session.chunks.shift();
             }
 
