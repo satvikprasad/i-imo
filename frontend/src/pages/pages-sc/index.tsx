@@ -20,8 +20,18 @@ interface Task {
     dueBy: Date | null;
 }
 
+interface Meeting {
+    id: string;
+    title: string;
+    contactName: string;
+    date: Date;
+    time: string;
+    description: string;
+}
+
 export default function ContactDirectory() {
     const contacts = useQuery(api.profile.getProfiles, {});
+    const personImages = useQuery(api.images.getAllPersonImages, {});
     const tasks = useQuery(api.task.getTasks, {});
 
     const updateProfiles = useMutation(api.profile.updateProfiles);
@@ -37,6 +47,46 @@ export default function ContactDirectory() {
     const [isAiThinking, setIsAiThinking] = useState(false);
 
     const [indexingProfiles, setIndexingProfiles] = useState(false);
+
+    const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
+    const [preparationSteps, setPreparationSteps] = useState<string>("");
+    const [isLoadingPrep, setIsLoadingPrep] = useState(false);
+
+    // Hardcoded meetings - tech and school related
+    const [meetings, setMeetings] = useState<Meeting[]>([
+        {
+            id: "1",
+            title: "Algorithm Design Review",
+            contactName: contacts && contacts.length > 0 ? contacts[0].name : "Prof. Smith",
+            date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // 2 days from now
+            time: "2:00 PM",
+            description: "Review dynamic programming solutions for final project"
+        },
+        {
+            id: "2",
+            title: "Hackathon Team Meeting",
+            contactName: contacts && contacts.length > 1 ? contacts[1].name : "Alex Chen",
+            date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 days from now
+            time: "6:00 PM",
+            description: "Plan tech stack and architecture for CalHacks project"
+        },
+        {
+            id: "3",
+            title: "Thesis Advisor Meeting",
+            contactName: contacts && contacts.length > 0 ? contacts[0].name : "Dr. Johnson",
+            date: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000), // 5 days from now
+            time: "10:00 AM",
+            description: "Discuss machine learning model results and next steps"
+        },
+        {
+            id: "4",
+            title: "Software Engineering Study Group",
+            contactName: contacts && contacts.length > 1 ? contacts[1].name : "Sarah Lee",
+            date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+            time: "4:00 PM",
+            description: "Review system design patterns and prepare for midterm"
+        }
+    ]);
 
     useEffect(() => {
         const savedTheme = localStorage.getItem("theme") as
@@ -108,6 +158,11 @@ export default function ContactDirectory() {
         });
     };
 
+    const getPersonImages = (personId: string) => {
+        if (!personImages) return null;
+        return personImages.find((img) => img.personId === personId);
+    };
+
     const reIndexProfiles = useCallback(async () => {
         if (indexingProfiles) return;
 
@@ -170,6 +225,38 @@ export default function ContactDirectory() {
         });
     }, []);
 
+    const fetchMeetingPrep = async (meeting: Meeting) => {
+        setIsLoadingPrep(true);
+        setPreparationSteps("");
+
+        try {
+            const params = new URLSearchParams({
+                contactName: meeting.contactName,
+                meetingTitle: meeting.title,
+                meetingDescription: meeting.description,
+            });
+
+            const res = await fetch(
+                `https://imo-8d4faadab8d7.herokuapp.com/omi/meeting-prep?${params.toString()}`
+                // `http://localhost:3000/omi/meeting-prep?${params.toString()}`
+            );
+
+            const data = await res.json();
+            setPreparationSteps(data.preparation);
+        } catch (error) {
+            console.error("Error fetching meeting prep:", error);
+            setPreparationSteps("Failed to load preparation steps. Please try again.");
+        } finally {
+            setIsLoadingPrep(false);
+        }
+    };
+
+    useEffect(() => {
+        if (selectedMeeting) {
+            fetchMeetingPrep(selectedMeeting);
+        }
+    }, [selectedMeeting]);
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-8">
             {contacts && tasks ? (
@@ -219,6 +306,7 @@ export default function ContactDirectory() {
                                 </Button>
                             </div>
                             {contacts.map((contact, index) => {
+                                const images = getPersonImages(contact._id);
                                 return (
                                     <Card
                                         key={index}
@@ -228,9 +316,17 @@ export default function ContactDirectory() {
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-4 flex-1">
                                                     <Avatar className="h-12 w-12">
-                                                        <AvatarFallback>
-                                                            <User className="h-6 w-6" />
-                                                        </AvatarFallback>
+                                                        {images?.thumbnailUrl ? (
+                                                            <img 
+                                                                src={images.thumbnailUrl} 
+                                                                alt={contact.name}
+                                                                className="h-full w-full object-cover"
+                                                            />
+                                                        ) : (
+                                                            <AvatarFallback>
+                                                                <User className="h-6 w-6" />
+                                                            </AvatarFallback>
+                                                        )}
                                                     </Avatar>
                                                     <div>
                                                         <CardTitle className="text-xl">
@@ -261,9 +357,17 @@ export default function ContactDirectory() {
                                                 {/* Photo Section */}
                                                 <div className="flex justify-center">
                                                     <Avatar className="h-32 w-32 border-4 border-slate-200 dark:border-slate-700">
-                                                        <AvatarFallback>
-                                                            <User className="h-16 w-16" />
-                                                        </AvatarFallback>
+                                                        {images?.imageUrl ? (
+                                                            <img 
+                                                                src={images.imageUrl} 
+                                                                alt={contact.name}
+                                                                className="h-full w-full object-cover"
+                                                            />
+                                                        ) : (
+                                                            <AvatarFallback>
+                                                                <User className="h-16 w-16" />
+                                                            </AvatarFallback>
+                                                        )}
                                                     </Avatar>
                                                 </div>
 
@@ -295,6 +399,52 @@ export default function ContactDirectory() {
                         <div className="p-6 space-y-6">
                             {/* Camera Component */}
                             <CameraComponent />
+
+                            {/* Calendar Section */}
+                            <Card>
+                                <CardContent>
+                                    <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-6">
+                                        Upcoming Meetings
+                                    </h2>
+
+                                    {meetings.length === 0 ? (
+                                        <div className="text-center py-12 text-slate-500 dark:text-slate-400">
+                                            <Calendar className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                                            <p className="text-lg">No meetings scheduled</p>
+                                            <p className="text-sm">Your meetings will appear here</p>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            {meetings.map((meeting) => (
+                                                <div
+                                                    key={meeting.id}
+                                                    onClick={() => setSelectedMeeting(meeting)}
+                                                    className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 rounded-lg border border-blue-200 dark:border-blue-800 hover:shadow-md transition-all cursor-pointer"
+                                                >
+                                                    <div className="flex items-start justify-between mb-2">
+                                                        <h3 className="font-semibold text-lg text-slate-900 dark:text-slate-100">
+                                                            {meeting.title}
+                                                        </h3>
+                                                        <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                                                    </div>
+                                                    <div className="text-sm text-slate-600 dark:text-slate-400 space-y-1">
+                                                        <p className="flex items-center gap-2">
+                                                            <User className="h-4 w-4" />
+                                                            <span className="font-medium">with {meeting.contactName}</span>
+                                                        </p>
+                                                        <p>
+                                                            <span className="font-medium">{formatDate(meeting.date)}</span> at {meeting.time}
+                                                        </p>
+                                                        <p className="text-slate-500 dark:text-slate-500 italic">
+                                                            {meeting.description}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
 
                             {/* Tasks Section */}
                             <Card>
@@ -453,6 +603,78 @@ export default function ContactDirectory() {
                             Loading...
                         </h5>
                         <ArrowPathIcon className="h-15 animate-spin" />
+                    </div>
+                </div>
+            )}
+
+            {/* Meeting Preparation Modal */}
+            {selectedMeeting && (
+                <div
+                    className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+                    onClick={() => setSelectedMeeting(null)}
+                >
+                    <div
+                        className="bg-white dark:bg-slate-800 rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto shadow-xl"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="p-6">
+                            <div className="flex items-start justify-between mb-4">
+                                <div>
+                                    <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                                        {selectedMeeting.title}
+                                    </h2>
+                                    <p className="text-slate-600 dark:text-slate-400 mt-1">
+                                        with {selectedMeeting.contactName}
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => setSelectedMeeting(null)}
+                                    className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                                >
+                                    <span className="text-2xl">&times;</span>
+                                </button>
+                            </div>
+
+                            <div className="mb-6 space-y-2 text-slate-600 dark:text-slate-400">
+                                <div className="flex items-center gap-2">
+                                    <Calendar className="h-5 w-5" />
+                                    <span>{formatDate(selectedMeeting.date)} at {selectedMeeting.time}</span>
+                                </div>
+                                <p className="text-sm italic">{selectedMeeting.description}</p>
+                            </div>
+
+                            <div className="border-t border-slate-200 dark:border-slate-700 pt-6">
+                                <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-4">
+                                    Meeting Preparation
+                                </h3>
+
+                                {isLoadingPrep ? (
+                                    <div className="flex items-center justify-center py-12">
+                                        <div className="flex flex-col items-center gap-3">
+                                            <ArrowPathIcon className="h-10 w-10 animate-spin text-blue-600" />
+                                            <p className="text-slate-600 dark:text-slate-400">
+                                                Generating preparation tips...
+                                            </p>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+                                        <p className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">
+                                            {preparationSteps}
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="mt-6 flex justify-end">
+                                <Button
+                                    onClick={() => setSelectedMeeting(null)}
+                                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                                >
+                                    Close
+                                </Button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}

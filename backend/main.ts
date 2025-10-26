@@ -443,4 +443,64 @@ app.get("/omi/tasks", async (req, res) => {
     return res.status(200).json(completion.choices[0].message.content);
 });
 
+app.get("/omi/meeting-prep", async (req, res) => {
+    const { contactName, meetingTitle, meetingDescription } = req.query;
+
+    if (!contactName || !meetingTitle) {
+        return res.status(400).json({ error: "Missing required parameters" });
+    }
+
+    try {
+        const collection = await chromaClient.getCollection({
+            name: "transcriptions",
+        });
+
+        const records = await collection.get();
+
+        const data = {
+            model: "llama3.3-70b-instruct",
+            messages: [
+                {
+                    role: "system",
+                    content: `Generate brief meeting prep tips for meeting with ${contactName} about "${meetingTitle}".
+
+                    Based on transcriptions, provide 3-4 bullet points covering:
+                    - Their background/expertise
+                    - How to approach them (communication style)
+                    - What to prepare or emphasize
+
+                    Keep it SHORT - max 50-70 words total. Be specific and actionable.`,
+                },
+                {
+                    role: "user",
+                    content: `Transcriptions:\n${JSON.stringify(
+                        records.ids.sort().map((id, index) => {
+                            const record = records.documents[index];
+
+                            return {
+                                transcription: record,
+                                timeSinceEpoch: id,
+                            };
+                        })
+                    )}`,
+                },
+            ],
+        };
+
+        const completion = await runInference(data);
+
+        console.log("Meeting prep generated for:", contactName);
+
+        return res.status(200).json({
+            preparation: completion.choices[0].message.content,
+        });
+    } catch (error) {
+        console.error("Error generating meeting prep:", error);
+        return res.status(500).json({
+            error: "Failed to generate meeting preparation",
+            message: error instanceof Error ? error.message : "Unknown error",
+        });
+    }
+});
+
 app.listen(process.env.PORT || 3000, () => {});

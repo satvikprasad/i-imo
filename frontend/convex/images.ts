@@ -117,3 +117,63 @@ export const createFaceMedia = internalMutation({
     return null;
   },
 });
+
+export const getPersonImage = query({
+  args: {
+    personId: v.id("persons"),
+  },
+  returns: v.union(
+    v.object({
+      imageUrl: v.union(v.string(), v.null()),
+      thumbnailUrl: v.union(v.string(), v.null()),
+    }),
+    v.null()
+  ),
+  handler: async (ctx, args) => {
+    const faceMedia = await ctx.db
+      .query("face_media")
+      .withIndex("by_person", (q) => q.eq("personId", args.personId))
+      .first();
+
+    if (!faceMedia) {
+      return null;
+    }
+
+    const imageUrl = await ctx.storage.getUrl(faceMedia.imageStorageId);
+    const thumbnailUrl = await ctx.storage.getUrl(faceMedia.thumbnailStorageId);
+
+    return {
+      imageUrl,
+      thumbnailUrl,
+    };
+  },
+});
+
+export const getAllPersonImages = query({
+  args: {},
+  returns: v.array(
+    v.object({
+      personId: v.id("persons"),
+      imageUrl: v.union(v.string(), v.null()),
+      thumbnailUrl: v.union(v.string(), v.null()),
+    })
+  ),
+  handler: async (ctx) => {
+    const allFaceMedia = await ctx.db.query("face_media").collect();
+
+    const results = await Promise.all(
+      allFaceMedia.map(async (media) => {
+        const imageUrl = await ctx.storage.getUrl(media.imageStorageId);
+        const thumbnailUrl = await ctx.storage.getUrl(media.thumbnailStorageId);
+
+        return {
+          personId: media.personId,
+          imageUrl,
+          thumbnailUrl,
+        };
+      })
+    );
+
+    return results;
+  },
+});
