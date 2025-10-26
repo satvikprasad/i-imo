@@ -1,4 +1,4 @@
-import { httpAction, internalMutation, query } from "./_generated/server";
+import { httpAction, internalMutation, internalQuery, query } from "./_generated/server";
 import { api, internal } from "./_generated/api";
 import { v } from 'convex/values';
 import type { Id } from "./_generated/dataModel";
@@ -25,6 +25,24 @@ export const getEmbeddingsFromDB = query({
 
 export const postUploadPerson = httpAction(async (ctx, request) => {
   const { image, emb, label, thumbnail } = await request.json();
+
+  // Check for duplicate person based on name and face embedding similarity
+  const duplicate = await ctx.runQuery(internal.images.checkForDuplicate, {
+    name: label,
+    emb: emb,
+  });
+
+  if (duplicate) {
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        message: "Person already exists",
+        personId: duplicate.personId,
+        reason: duplicate.reason
+      }), 
+      { status: 200 }
+    );
+  }
 
   // Convert base64 image to Blob
   const base64Data = image.replace(/^data:image\/\w+;base64,/, '');
@@ -67,6 +85,110 @@ export const postUploadPerson = httpAction(async (ctx, request) => {
   return new Response(JSON.stringify({ success: true, personId }), {
     status: 200,
   });
+});
+
+// Helper function to calculate cosine similarity between two vectors
+function cosineSimilarity(vecA: number[], vecB: number[]): number {
+  if (vecA.length !== vecB.length) return 0;
+  
+  let dotProduct = 0;
+  let normA = 0;
+  let normB = 0;
+  
+  for (let i = 0; i < vecA.length; i++) {
+    dotProduct += vecA[i] * vecB[i];
+    normA += vecA[i] * vecA[i];
+    normB += vecB[i] * vecB[i];
+  }
+  
+  normA = Math.sqrt(normA);
+  normB = Math.sqrt(normB);
+  
+  if (normA === 0 || normB === 0) return 0;
+  
+  return dotProduct / (normA * normB);
+}
+
+// Helper function to check name similarity (case-insensitive)
+function areNamesSimilar(name1: string, name2: string): boolean {
+  const normalized1 = name1.toLowerCase().trim();
+  const normalized2 = name2.toLowerCase().trim();
+  
+  // Exact match
+  if (normalized1 === normalized2) return true;
+  
+  // Check if one name contains the other
+  if (normalized1.includes(normalized2) || normalized2.includes(normalized1)) {
+    return true;
+  }
+  
+  return false;
+}
+
+export const checkForDuplicate = internalQuery({
+  args: {
+    name: v.string(),
+    emb: v.array(v.float64()),
+  },
+  returns: v.union(
+    v.object({
+      personId: v.id("persons"),
+      reason: v.string(),
+    }),
+    v.null()
+  ),
+  handler: async (ctx, args) => {
+    // Get all persons
+    const allPersons = await ctx.db.query("persons").collect();
+    
+    // Check for name similarity first
+    for (const person of allPersons) {
+      if (areNamesSimilar(person.name, args.name)) {
+        // Found similar name, now check face embedding similarity
+        const faceEmbs = await ctx.db
+          .query("face_embs")
+          .withIndex("by_person", (q) => q.eq("personId", person._id))
+          .collect();
+        
+        // Check similarity with any of their face embeddings
+        for (const faceEmb of faceEmbs) {
+          const similarity = cosineSimilarity(args.emb, faceEmb.emb);
+          
+          // If similarity is above threshold (e.g., 0.7), consider it a duplicate
+          if (similarity > 0.7) {
+            return {
+              personId: person._id,
+              reason: `Similar name and face detected (similarity: ${(similarity * 100).toFixed(1)}%)`,
+            };
+          }
+        }
+        
+        // Similar name but different face
+        return {
+          personId: person._id,
+          reason: "Similar name detected",
+        };
+      }
+    }
+    
+    // Check for face similarity even with different names
+    const allEmbeddings = await ctx.db.query("face_embs").collect();
+    
+    for (const existingEmb of allEmbeddings) {
+      const similarity = cosineSimilarity(args.emb, existingEmb.emb);
+      
+      // If face is very similar (above 0.8), it's likely the same person
+      if (similarity > 0.8) {
+        return {
+          personId: existingEmb.personId,
+          reason: `Similar face detected (similarity: ${(similarity * 100).toFixed(1)}%)`,
+        };
+      }
+    }
+    
+    // No duplicate found
+    return null;
+  },
 });
 
 export const createPerson = internalMutation({
