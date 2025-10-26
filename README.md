@@ -5,7 +5,7 @@
 
 <summary>Applovin Click Here</summary>
 
-The readme for applovin's challange is located at `applovin` folder. You can also [click here](https://github.com/satvikprasad/imo-calhacks/tree/master/applovin)
+The readme for applovin's challange is located at `applovin` folder. You can also [click here](https://github.com/satvikprasad/i-imo/tree/master/applovin)
 </details>
 
 
