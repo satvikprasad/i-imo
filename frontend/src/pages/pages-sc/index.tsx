@@ -152,7 +152,7 @@ export default function ContactDirectory() {
                                 {" • "}
                             </p>
                             <Button
-                                className="ml-auto"
+                                className="ml-auto hover:cursor-pointer"
                                 onClick={async () => {
                                     if (indexingProfiles) return;
 
@@ -180,7 +180,9 @@ export default function ContactDirectory() {
                                 }}
                             >
                                 Re-index Profiles
-                                <ArrowPathIcon className={`${indexingProfiles ? "animate-spin" : ""}`}/>
+                                <ArrowPathIcon
+                                    className={`${indexingProfiles ? "animate-spin" : ""}`}
+                                />
                             </Button>
                         </div>
                         {contacts.map((contact, index) => {
@@ -257,10 +259,16 @@ export default function ContactDirectory() {
 
                     {/* Right Column - Tasks Section */}
 
-                    <div className="bg-transparent p-10">
-                        <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 md-4">
-                            Tasks:
-                        </h2>
+                    <div className="bg-transparent">
+                        <div className="flex flex-row">
+                            <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 md-4">
+                                Tasks:
+                            </h2>
+                            <Button className="ml-auto hover:cursor-pointer">
+                              Re-generate Tasks
+                              <ArrowPathIcon/>
+                            </Button>
+                        </div>
                         <ul className="space-y-3 p-4 text-slate-700 dark:text-slate-300 text-lg">
                             {tasks.map((task, index) => (
                                 <li
