@@ -10,6 +10,8 @@
 
 import type * as http from "../http.js";
 import type * as images from "../images.js";
+import type * as profile from "../profile.js";
+import type * as task from "../task.js";
 
 import type {
   ApiFromModules,
@@ -28,6 +30,8 @@ import type {
 declare const fullApi: ApiFromModules<{
   http: typeof http;
   images: typeof images;
+  profile: typeof profile;
+  task: typeof task;
 }>;
 declare const fullApiWithMounts: typeof fullApi;
 

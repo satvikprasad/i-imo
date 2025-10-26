@@ -10,6 +10,7 @@
     "build": "tsc"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.19",
     "@types/express": "^5.0.4",
     "@types/node": "^22.13.10",
     "typescript": "^5.9.3"
@@ -17,7 +18,9 @@
   "dependencies": {
     "@chroma-core/default-embed": "^0.1.8",
     "@chroma-core/openai": "^0.1.7",
+    "@heroicons/react": "^2.2.0",
     "chromadb": "^3.0.17",
+    "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "openai": "^6.7.0"
