@@ -59,11 +59,11 @@ python3 optimized.py --data-dir ./data/data-lite --storage-dir ./storage --out-d
 # Full DB
 
 # Benchmark mode: runs baseline → optimized → comparison
-python3 optimized.py --data-dir ./data/data --storage-dir ./storage --out-dir ./results --bench
+python3 optimized.py --data-dir ./data/data --storage-dir ./storage --out-dir ./results-full --bench
 
 # Or run phases separately:
-python3 optimized.py --data-dir ./data/data --storage-dir ./storage --prepare  # Load & optimize data
-python3 optimized.py --data-dir ./data/data --storage-dir ./storage --run       # Execute queries
+python3 optimized.py --data-dir ./data/data --storage-dir ./storage --out-dir ./results-full --prepare  # Load & optimize data
+python3 optimized.py --data-dir ./data/data --storage-dir ./storage --out-dir ./results-full --run       # Execute queries
 
 # Baseline comparison
 python3 main.py --data-dir ./data --out-dir ./baseline_results
