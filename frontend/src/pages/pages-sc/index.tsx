@@ -120,7 +120,7 @@ export default function ContactDirectory() {
 		const endpoint = `https://imo-8d4faadab8d7.herokuapp.com/omi/profiles?name=Satvik`;
 
         fetch(
-            endpoint + (contacts && contacts.length > 0) ? `&${params.toString()}` : ""
+            `${endpoint}${(contacts && contacts.length > 0) ? `&${params.toString()}` : ""}`
         ).then(async (res) => {
             const profiles = JSON.parse(await res.json()).profiles as Profile[];
 
