@@ -17,6 +17,7 @@ export default defineSchema({
     face_media: defineTable({
         personId: v.id("persons"),
         imageStorageId: v.id("_storage"),
+        thumbnailStorageId: v.id("_storage"),
         createdAt: v.number(),
     }).index("by_person", ["personId"]),
 

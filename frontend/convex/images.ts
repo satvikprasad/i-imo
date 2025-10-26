@@ -24,9 +24,7 @@ export const getEmbeddingsFromDB = query({
 });
 
 export const postUploadPerson = httpAction(async (ctx, request) => {
-  const { image, emb, label } = await request.json();
-
-  console.log(emb, label);
+  const { image, emb, label, thumbnail } = await request.json();
 
   // Convert base64 image to Blob
   const base64Data = image.replace(/^data:image\/\w+;base64,/, '');
@@ -37,8 +35,18 @@ export const postUploadPerson = httpAction(async (ctx, request) => {
   }
   const blob = new Blob([bytes], { type: 'image/jpeg' });
 
-  // Store the image in Convex storage
+  // Convert base64 thumbnail to Blob
+  const thumbnailBase64Data = thumbnail.replace(/^data:image\/\w+;base64,/, '');
+  const thumbnailBinaryString = atob(thumbnailBase64Data);
+  const thumbnailBytes = new Uint8Array(thumbnailBinaryString.length);
+  for (let i = 0; i < thumbnailBinaryString.length; i++) {
+    thumbnailBytes[i] = thumbnailBinaryString.charCodeAt(i);
+  }
+  const thumbnailBlob = new Blob([thumbnailBytes], { type: 'image/jpeg' });
+
+  // Store both image and thumbnail in Convex storage
   const storageId: Id<"_storage"> = await ctx.storage.store(blob);
+  const thumbnailStorageId: Id<"_storage"> = await ctx.storage.store(thumbnailBlob);
 
   // Save person, embedding, and media to database
   const personId: Id<"persons"> = await ctx.runMutation(internal.images.createPerson, {
@@ -53,6 +61,7 @@ export const postUploadPerson = httpAction(async (ctx, request) => {
   await ctx.runMutation(internal.images.createFaceMedia, {
     personId,
     storageId,
+    thumbnailStorageId,
   });
 
   return new Response(JSON.stringify({ success: true, personId }), {
@@ -95,12 +104,14 @@ export const createFaceMedia = internalMutation({
   args: {
     personId: v.id("persons"),
     storageId: v.id("_storage"),
+    thumbnailStorageId: v.id("_storage"),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
     await ctx.db.insert("face_media", {
       personId: args.personId,
       imageStorageId: args.storageId,
+      thumbnailStorageId: args.thumbnailStorageId,
       createdAt: Date.now(),
     });
     return null;
