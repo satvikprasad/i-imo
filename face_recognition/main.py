@@ -160,7 +160,7 @@ async def lifespan(app: FastAPI):
     insight.prepare(ctx_id=-1)
 
     db = ConvexClient(
-        base_url="https://giant-dalmatian-627.convex.site",
+        base_url="https://stoic-cat-389.convex.site",
         create_path="/upload",          # your JSON POST endpoint
         get_all_path="/getEmbeddings",  # your GET endpoint returning [[...], ...]
         auth_header=None,
