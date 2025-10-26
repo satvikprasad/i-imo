@@ -6,6 +6,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { api } from "../../../convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
 
+import { ArrowPathIcon } from "@heroicons/react/24/solid";
+
 interface Profile {
     name: string;
     conversationSummary: string;
@@ -30,6 +32,8 @@ export default function ContactDirectory() {
 
     const [chatInput, setChatInput] = useState("");
     const [isAiThinking, setIsAiThinking] = useState(false);
+
+    const [indexingProfiles, setIndexingProfiles] = useState(false);
 
     useEffect(() => {
         const savedTheme = localStorage.getItem("theme") as
@@ -150,11 +154,15 @@ export default function ContactDirectory() {
                             <Button
                                 className="ml-auto"
                                 onClick={async () => {
+                                    if (indexingProfiles) return;
+
                                     const params = new URLSearchParams();
 
                                     contacts.forEach((c) => {
                                         params.append(`profiles`, c.name);
                                     });
+
+                                    setIndexingProfiles(true);
 
                                     fetch(
                                         `https://imo-8d4faadab8d7.herokuapp.com/omi/profiles?name=Satvik&${params.toString()}`
@@ -166,10 +174,13 @@ export default function ContactDirectory() {
                                         updateProfiles({
                                             profiles: profiles,
                                         });
+
+                                        setIndexingProfiles(false);
                                     });
                                 }}
                             >
                                 Re-index Profiles
+                                <ArrowPathIcon className={`${indexingProfiles ? "animate-spin" : ""}`}/>
                             </Button>
                         </div>
                         {contacts.map((contact, index) => {
