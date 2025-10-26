@@ -69,6 +69,7 @@ export const createPerson = internalMutation({
     const personId = await ctx.db.insert("persons", {
       name: args.name,
       createdAt: Date.now(),
+      conversationSummary: "Undocumented..."
     });
     return personId;
   },

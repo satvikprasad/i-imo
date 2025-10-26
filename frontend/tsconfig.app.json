@@ -29,5 +29,5 @@
       "@convex/*": ["./convex/_generated/*"]
     }
   },
-  "include": ["src"]
+  "include": ["src", "convex/profile.ts"]
 }
