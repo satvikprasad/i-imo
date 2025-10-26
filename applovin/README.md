@@ -51,7 +51,7 @@ python3 -m venv .venv
 source .venv/bin/activate
 
 # Install dependencies
-pip install -r requirements.txt
+pip3 install -r requirements.txt
 
 # Run benchmark for lite db
 python3 optimized.py --data-dir ./data/data-lite --storage-dir ./storage --out-dir ./results --bench
@@ -67,6 +67,14 @@ python3 optimized.py --data-dir ./data/data --storage-dir ./storage --run       
 
 # Baseline comparison
 python3 main.py --data-dir ./data --out-dir ./baseline_results
+
+# Run with hardware monitor
+
+pip3 install matplotlib
+
+<command> & echo $! | xargs python3 montior.py
+
+example: python3 main.py --data-dir ./data --out-dir ./baseline_results & echo $! | xargs python3 montior.py
 ```
 
 ## 📊 Performance
