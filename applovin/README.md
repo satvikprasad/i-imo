@@ -9,7 +9,7 @@ Ultra-fast CSV analytics engine with columnar storage, intelligent pre-aggregati
 - Columnar storage with Snappy compression for I/O optimization
 
 - Out-of-core processing with disk spillover protection
-- ThreadPoolExecutor for parallel index creation
+<!-- - ThreadPoolExecutor for parallel index creation -->
 - Tune settings:
     - preserve_insertion_order
     - threads count
@@ -18,6 +18,10 @@ Ultra-fast CSV analytics engine with columnar storage, intelligent pre-aggregati
 
 **Indexes:**
 - Created We created a similar  B-tree indexes (ART - Adaptive Radix Trees) on type/day/country in parallel via ThreadPoolExecutor.
+
+**Why ART?**
+    - ART is faster the B-tree for strings: Type, country codes, dates are often strings/text
+    - structure that adapts node sizes based on data density
 
 
 **Smart Pre-aggregation tables:**
@@ -47,7 +51,7 @@ python3 -m venv .venv
 source .venv/bin/activate
 
 # Install dependencies
-pip install -r requirements.txt
+pip3 install -r requirements.txt
 
 # Run benchmark for lite db
 python3 optimized.py --data-dir ./data/data-lite --storage-dir ./storage --out-dir ./results --bench
@@ -55,14 +59,22 @@ python3 optimized.py --data-dir ./data/data-lite --storage-dir ./storage --out-d
 # Full DB
 
 # Benchmark mode: runs baseline → optimized → comparison
-python3 optimized.py --data-dir ./data/data --storage-dir ./storage --out-dir ./results --bench
+python3 optimized.py --data-dir ./data/data --storage-dir ./storage --out-dir ./results-full --bench
 
 # Or run phases separately:
-python3 optimized.py --data-dir ./data/data --storage-dir ./storage --prepare  # Load & optimize data
-python3 optimized.py --data-dir ./data/data --storage-dir ./storage --run       # Execute queries
+python3 optimized.py --data-dir ./data/data --storage-dir ./storage --out-dir ./results-full --prepare  # Load & optimize data
+python3 optimized.py --data-dir ./data/data --storage-dir ./storage --out-dir ./results-full --run       # Execute queries
 
 # Baseline comparison
 python3 main.py --data-dir ./data --out-dir ./baseline_results
+
+# Run with hardware monitor
+
+pip3 install matplotlib
+
+<command> & echo $! | xargs python3 montior.py
+
+example: python3 main.py --data-dir ./data --out-dir ./baseline_results & echo $! | xargs python3 montior.py
 ```
 
 ## 📊 Performance
@@ -94,7 +106,7 @@ ALL QUERIES COMPLETE in 168.0ms
 ```
 
 Monitor graphs
-![insert image](https://github.com/satvikprasad/imo-calhacks/blob/master/applovin/resource_usage-lite.png?raw=true)
+![insert image](https://github.com/satvikprasad/i-imo/blob/master/applovin/resource_usage-lite.png?raw=true)
 
 ### full dataset
 
@@ -125,7 +137,7 @@ ALL QUERIES COMPLETE in 381.8ms
 ```
 
 Graphs
-![insert image](https://github.com/satvikprasad/imo-calhacks/blob/master/applovin/resource_usage.png?raw=true)
+![insert image](https://github.com/satvikprasad/i-imo/blob/master/applovin/resource_usage.png?raw=true)
 
 ## 🏗️ Architecture
 
