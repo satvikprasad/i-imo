@@ -67,7 +67,7 @@ export default function ContactDirectory() {
       
       try {
         const res = await fetch(
-          `http://localhost:3000/omi/prompt?prompt=${chatInput}`,
+          `https://imo-8d4faadab8d7.herokuapp.com/omi/prompt?prompt=${chatInput}`,
           {
             method: "GET",
             headers: {"Content-Type": "application/json"}
