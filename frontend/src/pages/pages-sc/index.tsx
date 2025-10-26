@@ -320,7 +320,7 @@ export default function ContactDirectory() {
                                                 type="checkbox"
                                                 className="w-5 h-5 mt-1 accent-blue-600 dark:accent-blue-400"
                                             />
-                                            <span>{task.description} {task.dueBy != null ? <span className="font-bold text-red-500">({formatDate(task.dueBy)})</span> : <></>}</span>
+                                            <span>{task.description} {task.dueBy != null ? <span className="font-bold text-red-500">({formatDate(new Date(task.dueBy))})</span> : <></>}</span>
                                         </li>
                                     ))}
                                 </ul>
