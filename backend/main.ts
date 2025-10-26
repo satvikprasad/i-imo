@@ -229,7 +229,7 @@ app.get("/omi/profiles", async (req, res) => {
     const records = await collection.get();
 
     if (!profiles) {
-        return res.status(500).end();
+        profiles = [];
     }
 
     if (!Array.isArray(profiles)) {
@@ -363,7 +363,7 @@ app.get("/omi/tasks", async (req, res) => {
     let { name, curr_tasks: currTasks } = req.query;
 
     if (!currTasks) {
-        return res.send(400).end();
+        currTasks = [];
     }
 
     const collection = await chromaClient.getCollection({
@@ -417,7 +417,7 @@ app.get("/omi/tasks", async (req, res) => {
                         DON'T refer to your role as a transcription. You have to provide a natural summary from a third-person, omniscient perspective. Keep tasks
                         short and simple.
                         
-                        DON'T format it as a code block, just raw text. 
+                        DON'T format it as a code block, just raw text. No inline math in the JSON.
                         Prioritise information at the end of the conversation rather than the beginning.`,
             },
             {
