@@ -162,8 +162,8 @@ class FastDuckDBEngine:
         os.makedirs('/tmp/duckdb_temp', exist_ok=True)
 
         # Performance tuning settings (from DuckDB performance guide)
-        self.conn.execute("SET memory_limit='11GB'")  # Conservative limit with buffer for spikes
-        self.conn.execute("SET threads=6")  # Use 8 threads for parallelism
+        self.conn.execute("SET memory_limit='8GB'")  # Very conservative limit with large buffer
+        self.conn.execute("SET threads=4")  # Reduced threads to lower memory usage
         self.conn.execute("SET preserve_insertion_order = false")  # Reduce memory overhead during import
         self.conn.execute("SET temp_directory = '/tmp/duckdb_temp/'")  # Enable out-of-core processing
 
@@ -171,7 +171,7 @@ class FastDuckDBEngine:
         csv_files = sorted(self.data_dir.glob("*.csv"))
         total_files = len(csv_files)
         print(f"📊 Found {total_files} CSV files to load")
-        print(f"⚙️  Settings: 6 threads, 11GB memory, preserve_insertion_order=false, temp_dir=/tmp/duckdb_temp/\n")
+        print(f"⚙️  Settings: 4 threads, 8GB memory, preserve_insertion_order=false, temp_dir=/tmp/duckdb_temp/\n")
 
         # Create table schema first (empty)
         print("📊 Step 1: Creating table schema...")
@@ -280,7 +280,11 @@ class FastDuckDBEngine:
             idx_t0 = time.time()
             self.conn.execute(sql)
             idx_time = time.time() - idx_t0
+            # Checkpoint after each index to flush memory and free resources
+            self.conn.execute("CHECKPOINT")
             print(f"  ✓ idx_{col_name} created in {idx_time:.1f}s | RAM: {get_memory_usage():.1f}GB")
+            # Small pause to let memory stabilize
+            time.sleep(0.5)
 
         print(f"✅ All indexes created in {time.time() - idx_start:.1f}s")
         print(f"💾 RAM: {get_memory_usage():.2f} GB\n")
@@ -533,8 +537,8 @@ class FastDuckDBEngine:
         if not self.conn:
             self.conn = duckdb.connect(str(self.db_file))
             # Apply same performance settings
-            self.conn.execute("SET memory_limit='11GB'")
-            self.conn.execute("SET threads=6")
+            self.conn.execute("SET memory_limit='8GB'")
+            self.conn.execute("SET threads=4")
             self.conn.execute("SET preserve_insertion_order = false")
             self.conn.execute("SET temp_directory = '/tmp/duckdb_temp/'")
 
