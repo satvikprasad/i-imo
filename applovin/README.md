@@ -9,7 +9,7 @@ Ultra-fast CSV analytics engine with columnar storage, intelligent pre-aggregati
 - Columnar storage with Snappy compression for I/O optimization
 
 - Out-of-core processing with disk spillover protection
-- ThreadPoolExecutor for parallel index creation
+<!-- - ThreadPoolExecutor for parallel index creation -->
 - Tune settings:
     - preserve_insertion_order
     - threads count
@@ -18,6 +18,10 @@ Ultra-fast CSV analytics engine with columnar storage, intelligent pre-aggregati
 
 **Indexes:**
 - Created We created a similar  B-tree indexes (ART - Adaptive Radix Trees) on type/day/country in parallel via ThreadPoolExecutor.
+
+**Why ART?**
+    - ART is faster the B-tree for strings: Type, country codes, dates are often strings/text
+    - structure that adapts node sizes based on data density
 
 
 **Smart Pre-aggregation tables:**
