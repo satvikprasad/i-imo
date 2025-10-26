@@ -298,7 +298,47 @@ app.get("/omi/profiles", async (req, res) => {
 
     const completion = await runInference(data);
 
-    console.log(completion);
+    console.log(completion)
+
+    return res.status(200).json(completion.choices[0].message.content);
+});
+
+app.get("/omi/prompt", async (req, res) => {
+    console.log("Request received.")
+
+    const { prompt } = req.query;
+    const collection = await chromaClient.getCollection({
+        name: "transcriptions",
+    });
+
+    const records = await collection.get();
+
+    const data = {
+        "messages": [
+            {
+                "role": "system",
+                "content": `The user asked this prompt: ${prompt}. Using the transcriptions I provided you, give the best response possible. Keep the prompt as short as possible.`
+            },
+            {
+                "role": "user",
+                "content": `Transcriptions:\n${
+                    JSON.stringify(records.ids.sort().map((id, index) => {
+                        const record = records.documents[index];
+
+                        return {
+                            transcription: record,
+                            timeSinceEpoch: id,
+                        };
+                    }))
+                }`,
+            },
+        ],
+        "model": "llama3.3-70b-instruct",
+    };
+
+    const completion = await runInference(data);
+
+    console.log(completion.choices[0].message)
 
     return res.status(200).json(completion.choices[0].message.content);
 });
@@ -386,7 +426,7 @@ app.get("/omi/tasks", async (req, res) => {
 
     const completion = await runInference(data);
 
-    console.log(completion);
+    console.log(completion)
 
     return res.status(200).json(completion.choices[0].message.content);
 });
