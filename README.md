@@ -1,4 +1,4 @@
-# IMO - Intelligent Meeting Organizer
+# I-IMO - Intelligent IRL Meeting Organizer
 
 ## If you are applovin judges - please check out this section
 <details>
@@ -10,14 +10,14 @@ The readme for applovin's challange is located at `applovin` folder. You can als
 
 
 ## Inspiration
-I usually a yapper and talk with a lot of people, but at the end of the day, you look back yourself and can't remember all of them or sometimes you just remember the faces but not what their infomation. Maybe I'm a bad person or I'm just having a bad memory ;D. So we built _____!
+I usually a yapper and talk with a lot of people, but at the end of the day, you look back yourself and can't remember all of them or sometimes you just remember the faces but not what their infomation. Maybe I'm a bad person or I'm just having a bad memory ;D. So we built I-IMO!
 
-A conversational AI agent designed with the busiest people in mind. ___  scans both visual input (webcam) and oral input (OMI devkit2) throughout your day to organize and summarize profiles for everyone you meet, while maintaining task lists and tracking important events so you never forget anything important from your meetings.
+A conversational AI agent designed with the busiest people in mind. I-IMO scans both visual input (webcam) and oral input (OMI devkit2) throughout your day to organize and summarize profiles for everyone you meet, while maintaining task lists and tracking important events so you never forget anything important from your meetings.
 
 - We want to do this app on any smart glasses, but we could not get one. Snapchat spectacles are all reserved and Omi glasses - turn out they are giving out omi devkit (voice only) device.
 
 ## What It Does
-___ is your personal meeting intelligence assistant that:
+I-IMO is your personal meeting intelligence assistant that:
 
 - Captures conversations through real-time audio transcription
 - Recognizes faces via webcam to identify meeting participants
