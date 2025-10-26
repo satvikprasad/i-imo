@@ -12,12 +12,12 @@ interface Profile {
 }
 
 interface Task {
-  description: string;
-  dueBy: Date | null;
+    description: string;
+    dueBy: Date | null;
 }
 
 export default function ContactDirectory() {
-  const [tasks, setTasks] = useState<Task[]>([]);
+    const [tasks, setTasks] = useState<Task[]>([]);
 
     const contacts = useQuery(api.profile.getProfiles, {}) || [];
 
@@ -25,10 +25,10 @@ export default function ContactDirectory() {
 
     const [theme, setTheme] = useState<"light" | "dark">("light");
     const [chatMessages, setChatMessages] = useState<
-    { role: "user"| "assistant", content: string}[]
+        { role: "user" | "assistant"; content: string }[]
     >([]);
 
-    const[chatInput, setChatInput] = useState("");
+    const [chatInput, setChatInput] = useState("");
     const [isAiThinking, setIsAiThinking] = useState(false);
 
     useEffect(() => {
@@ -47,51 +47,53 @@ export default function ContactDirectory() {
         fetch(
             "https://imo-8d4faadab8d7.herokuapp.com/omi/tasks?name=Satvik"
         ).then(async (res) => {
-          const tasks = JSON.parse(await res.json()).tasks as {
-            description: string,
-            dueBy: number
-          }[];
-        })
+            const tasks = JSON.parse(await res.json()).tasks as {
+                description: string;
+                dueBy: number;
+            }[];
+        });
     }, []);
 
     const handleSendMessage = async () => {
-      if (!chatInput.trim() || isAiThinking) return;
+        if (!chatInput.trim() || isAiThinking) return;
 
-      const userMessage = {
-        role: "user" as const, content: chatInput
-      };
+        const userMessage = {
+            role: "user" as const,
+            content: chatInput,
+        };
 
-      setChatMessages((prev) => [...prev, userMessage]);
-      setChatInput("");
-      setIsAiThinking(true)
-      
-      try {
-        const res = await fetch(
-          `https://imo-8d4faadab8d7.herokuapp.com/omi/prompt?prompt=${chatInput}`,
-          {
-            method: "GET",
-            headers: {"Content-Type": "application/json"}
-          }
-        )
+        setChatMessages((prev) => [...prev, userMessage]);
+        setChatInput("");
+        setIsAiThinking(true);
 
-        const data = await res.json();
+        try {
+            const res = await fetch(
+                `https://imo-8d4faadab8d7.herokuapp.com/omi/prompt?prompt=${chatInput}`,
+                {
+                    method: "GET",
+                    headers: { "Content-Type": "application/json" },
+                }
+            );
 
-        const aiMessage = { role: "assistant" as const, content: data};
+            const data = await res.json();
 
-        setChatMessages((prev) => [...prev, aiMessage]);
-      } catch(error) {
-        console.error("Error sending message:", error);
+            const aiMessage = { role: "assistant" as const, content: data };
 
-        setChatMessages((prev) => [
-          ...prev,
-          { role: "assistant" as const, 
-            content: "Sorry, there was an error."
-          }
-        ])
-      } finally {
-        setIsAiThinking(false);
-      }
-    }
+            setChatMessages((prev) => [...prev, aiMessage]);
+        } catch (error) {
+            console.error("Error sending message:", error);
+
+            setChatMessages((prev) => [
+                ...prev,
+                {
+                    role: "assistant" as const,
+                    content: "Sorry, there was an error.",
+                },
+            ]);
+        } finally {
+            setIsAiThinking(false);
+        }
+    };
 
     const toggleTheme = () => {
         const newTheme = theme === "light" ? "dark" : "light";
@@ -272,75 +274,94 @@ export default function ContactDirectory() {
                             ))}
                         </ul>
                         <Card>
-              <CardContent>
-                <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-4">
-                  Chat with AI:
-                </h2>
-                <div className="space-y-4">
-                  <div className="h-64 overflow-y-auto bg-slate-100 dark:bg-slate-800 rounded-lg p-4 space-y-3">
-                    {chatMessages.map((msg, index) => (
-                      <div
-                        key={index}
-                        className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-                      >
-                        <div
-                          className={`max-w-xs px-4 py-2 rounded-lg ${
-                            msg.role === "user"
-                              ? "bg-blue-600 text-white"
-                              : "bg-slate-300 dark:bg-slate-700 text-slate-900 dark:text-slate-100"
-                          }`}
-                        >
-                          {msg.content}
-                        </div>
-                      </div>
-                    ))}
-                    {isAiThinking && (
-                      <div className="flex justify-start">
-                        <div className="max-w-xs px-4 py-2 rounded-lg bg-slate-300 dark:bg-slate-700 text-slate-900 dark:text-slate-100">
-                          <div className="flex items-center gap-2">
-                            <div className="flex gap-1">
-                              <span
-                                className="w-2 h-2 bg-slate-600 dark:bg-slate-400 rounded-full animate-bounce"
-                                style={{ animationDelay: "0ms" }}
-                              ></span>
-                              <span
-                                className="w-2 h-2 bg-slate-600 dark:bg-slate-400 rounded-full animate-bounce"
-                                style={{ animationDelay: "150ms" }}
-                              ></span>
-                              <span
-                                className="w-2 h-2 bg-slate-600 dark:bg-slate-400 rounded-full animate-bounce"
-                                style={{ animationDelay: "300ms" }}
-                              ></span>
-                            </div>
-                            <span className="text-sm">AI is thinking...</span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={chatInput}
-                      onChange={(e) => setChatInput(e.target.value)}
-                      onKeyPress={(e) =>
-                        e.key === "Enter" && handleSendMessage()
-                      }
-                      disabled={isAiThinking}
-                      placeholder="Type your message..."
-                      className="flex-1 px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                    />
-                    <button
-                      onClick={handleSendMessage}
-                      disabled={isAiThinking || !chatInput.trim()}
-                      className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-blue-600"
-                    >
-                      {isAiThinking ? "Sending..." : "Send"}
-                    </button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                            <CardContent>
+                                <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-4">
+                                    Chat with AI:
+                                </h2>
+                                <div className="space-y-4">
+                                    <div className="h-64 overflow-y-auto bg-slate-100 dark:bg-slate-800 rounded-lg p-4 space-y-3">
+                                        {chatMessages.map((msg, index) => (
+                                            <div
+                                                key={index}
+                                                className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                                            >
+                                                <div
+                                                    className={`max-w-xs px-4 py-2 rounded-lg ${
+                                                        msg.role === "user"
+                                                            ? "bg-blue-600 text-white"
+                                                            : "bg-slate-300 dark:bg-slate-700 text-slate-900 dark:text-slate-100"
+                                                    }`}
+                                                >
+                                                    {msg.content}
+                                                </div>
+                                            </div>
+                                        ))}
+                                        {isAiThinking && (
+                                            <div className="flex justify-start">
+                                                <div className="max-w-xs px-4 py-2 rounded-lg bg-slate-300 dark:bg-slate-700 text-slate-900 dark:text-slate-100">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="flex gap-1">
+                                                            <span
+                                                                className="w-2 h-2 bg-slate-600 dark:bg-slate-400 rounded-full animate-bounce"
+                                                                style={{
+                                                                    animationDelay:
+                                                                        "0ms",
+                                                                }}
+                                                            ></span>
+                                                            <span
+                                                                className="w-2 h-2 bg-slate-600 dark:bg-slate-400 rounded-full animate-bounce"
+                                                                style={{
+                                                                    animationDelay:
+                                                                        "150ms",
+                                                                }}
+                                                            ></span>
+                                                            <span
+                                                                className="w-2 h-2 bg-slate-600 dark:bg-slate-400 rounded-full animate-bounce"
+                                                                style={{
+                                                                    animationDelay:
+                                                                        "300ms",
+                                                                }}
+                                                            ></span>
+                                                        </div>
+                                                        <span className="text-sm">
+                                                            AI is thinking...
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            value={chatInput}
+                                            onChange={(e) =>
+                                                setChatInput(e.target.value)
+                                            }
+                                            onKeyPress={(e) =>
+                                                e.key === "Enter" &&
+                                                handleSendMessage()
+                                            }
+                                            disabled={isAiThinking}
+                                            placeholder="Type your message..."
+                                            className="flex-1 px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        />
+                                        <button
+                                            onClick={handleSendMessage}
+                                            disabled={
+                                                isAiThinking ||
+                                                !chatInput.trim()
+                                            }
+                                            className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-blue-600"
+                                        >
+                                            {isAiThinking
+                                                ? "Sending..."
+                                                : "Send"}
+                                        </button>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
                     </div>
                 </div>
             </div>

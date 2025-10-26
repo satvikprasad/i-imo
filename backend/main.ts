@@ -7,7 +7,7 @@ import { CloudClient as ChromaClient } from "chromadb";
 
 import { OpenAIEmbeddingFunction } from "@chroma-core/openai";
 
-import cors from "cors"
+import cors from "cors";
 
 // Source env
 dotenv.config();
@@ -237,10 +237,10 @@ app.get("/omi/profiles", async (req, res) => {
     }
 
     const data = {
-        "messages": [
+        messages: [
             {
-                "role": "system",
-                "content": `Analyse all conversations today to generate profiles for all the people I've met. The people I've met are:
+                role: "system",
+                content: `Analyse all conversations today to generate profiles for all the people I've met. The people I've met are:
 
                         \`\`\`json
                         ${JSON.stringify(profiles)}
@@ -280,31 +280,31 @@ app.get("/omi/profiles", async (req, res) => {
                         Prioritise information at the end of the conversation rather than the beginning.`,
             },
             {
-                "role": "user",
-                "content": `Transcriptions:\n${
-                    JSON.stringify(records.ids.sort().map((id, index) => {
+                role: "user",
+                content: `Transcriptions:\n${JSON.stringify(
+                    records.ids.sort().map((id, index) => {
                         const record = records.documents[index];
 
                         return {
                             transcription: record,
                             timeSinceEpoch: id,
                         };
-                    }))
-                }`,
+                    })
+                )}`,
             },
         ],
-        "model": "llama3.3-70b-instruct",
+        model: "llama3.3-70b-instruct",
     };
 
     const completion = await runInference(data);
 
-    console.log(completion)
+    console.log(completion);
 
     return res.status(200).json(completion.choices[0].message.content);
 });
 
 app.get("/omi/prompt", async (req, res) => {
-    console.log("Request received.")
+    console.log("Request received.");
 
     const { prompt } = req.query;
     const collection = await chromaClient.getCollection({
@@ -314,31 +314,31 @@ app.get("/omi/prompt", async (req, res) => {
     const records = await collection.get();
 
     const data = {
-        "messages": [
+        messages: [
             {
-                "role": "system",
-                "content": `The user asked this prompt: ${prompt}. Using the transcriptions I provided you, give the best response possible. Keep the prompt as short as possible.`
+                role: "system",
+                content: `The user asked this prompt: ${prompt}. Using the transcriptions I provided you, give the best response possible. Keep the prompt as short as possible.`,
             },
             {
-                "role": "user",
-                "content": `Transcriptions:\n${
-                    JSON.stringify(records.ids.sort().map((id, index) => {
+                role: "user",
+                content: `Transcriptions:\n${JSON.stringify(
+                    records.ids.sort().map((id, index) => {
                         const record = records.documents[index];
 
                         return {
                             transcription: record,
                             timeSinceEpoch: id,
                         };
-                    }))
-                }`,
+                    })
+                )}`,
             },
         ],
-        "model": "llama3.3-70b-instruct",
+        model: "llama3.3-70b-instruct",
     };
 
     const completion = await runInference(data);
 
-    console.log(completion.choices[0].message)
+    console.log(completion.choices[0].message);
 
     return res.status(200).json(completion.choices[0].message.content);
 });
@@ -354,7 +354,7 @@ async function runInference(data: any) {
         method: "POST",
         headers: headers,
         body: JSON.stringify(data),
-    })
+    });
 
     return await res.json();
 }
@@ -369,11 +369,11 @@ app.get("/omi/tasks", async (req, res) => {
     const records = await collection.get();
 
     const data = {
-        "model": "llama3.3-70b-instruct",
-        "messages": [
+        model: "llama3.3-70b-instruct",
+        messages: [
             {
-                "role": "system",
-                "content": `Analyse all conversations today to generate tasks that I must complete, and their potential deadline (optional).
+                role: "system",
+                content: `Analyse all conversations today to generate tasks that I must complete, and their potential deadline (optional).
 
                         My name is ${name}.
 
@@ -409,24 +409,24 @@ app.get("/omi/tasks", async (req, res) => {
                         Prioritise information at the end of the conversation rather than the beginning.`,
             },
             {
-                "role": "user",
-                "content": `Transcriptions:\n${
-                    JSON.stringify(records.ids.sort().map((id, index) => {
+                role: "user",
+                content: `Transcriptions:\n${JSON.stringify(
+                    records.ids.sort().map((id, index) => {
                         const record = records.documents[index];
 
                         return {
                             transcription: record,
                             timeSinceEpoch: id,
                         };
-                    }))
-                }`,
+                    })
+                )}`,
             },
         ],
-    }
+    };
 
     const completion = await runInference(data);
 
-    console.log(completion)
+    console.log(completion);
 
     return res.status(200).json(completion.choices[0].message.content);
 });
