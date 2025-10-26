@@ -220,19 +220,33 @@ app.post("/omi/audio", async (req: Request, res: Response) => {
 });
 
 app.get("/omi/profiles", async (req, res) => {
-    const { name } = req.query;
+    let { name, profiles } = req.query;
 
     const collection = await chromaClient.getCollection({
         name: "transcriptions",
     });
 
+    console.log(profiles, req.query);
+
     const records = await collection.get();
+
+    if (!profiles) {
+        return res.status(500).end();
+    }
+
+    if (!Array.isArray(profiles)) {
+        profiles = [profiles];
+    }
 
     const data = {
         "messages": [
             {
                 "role": "system",
-                "content": `Analyse all conversations today to generate profiles for all the people I've met.
+                "content": `Analyse all conversations today to generate profiles for all the people I've met. The people I've met are:
+
+                        \`\`\`json
+                        ${JSON.stringify(profiles)}
+                        \`\`\`
 
                         My name is ${name}. Don't create a profile for myself.
 
@@ -247,7 +261,6 @@ app.get("/omi/profiles", async (req, res) => {
                         profiles: {
                             name: string, // Full name of person, correctly captailised
                             conversationSummary: string, // Paragraph summarising important conversations.
-                            metOn: number // Representing milliseconds since epoch.
                         }[]
                         \`\`\`
 
@@ -258,7 +271,6 @@ app.get("/omi/profiles", async (req, res) => {
                                 {
                                     name: "John Doe",
                                     conversationSummary: "...",
-                                    metOn: 1761430956388
                                 }
                             ]
                         }
@@ -283,10 +295,12 @@ app.get("/omi/profiles", async (req, res) => {
                 }`,
             },
         ],
-        "model": "openai-gpt-oss-120b",
+        "model": "openai-gpt-oss-20b",
     };
 
     const completion = await runInference(data);
+
+    console.log(completion);
 
     return res.status(200).json(completion.choices[0].message.content);
 });
@@ -317,7 +331,7 @@ app.get("/omi/tasks", async (req, res) => {
     const records = await collection.get();
 
     const data = {
-        "model": "openai-gpt-oss-120b",
+        "model": "openai-gpt-oss-20b",
         "messages": [
             {
                 "role": "system",
@@ -373,6 +387,8 @@ app.get("/omi/tasks", async (req, res) => {
     }
 
     const completion = await runInference(data);
+
+    console.log(completion);
 
     return res.status(200).json(completion.choices[0].message.content);
 });

@@ -1,15 +1,14 @@
 import { useState, useEffect } from "react";
-import { User, Edit2, Moon, Sun, Calendar } from "lucide-react";
+import { User, Moon, Sun, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { api } from "../../../convex/_generated/api";
+import { useMutation, useQuery } from "convex/react";
 
 interface Profile {
     name: string;
     conversationSummary: string;
-    metOn: number;
 }
 
 interface Task {
@@ -18,13 +17,13 @@ interface Task {
 }
 
 export default function ContactDirectory() {
-    const [contacts, setContacts] = useState<(Profile & {
-      confirmed: boolean
-    })[]>([]);
-
     const [tasks, setTasks] = useState<Task[]>([]);
 
     const [theme, setTheme] = useState<"light" | "dark">("light");
+
+    const contacts = useQuery(api.profile.getProfiles, {}) || [];
+
+    const updateProfiles = useMutation(api.profile.updateProfiles);
 
     useEffect(() => {
         const savedTheme = localStorage.getItem("theme") as
@@ -40,34 +39,12 @@ export default function ContactDirectory() {
         }
 
         fetch(
-            "https://imo-8d4faadab8d7.herokuapp.com/omi/profiles?name=Satvik"
-        ).then(async (res) => {
-            const profiles = JSON.parse(await res.json()).profiles as Profile[];
-
-            setContacts(profiles.map((p) => {
-              return {
-                name: p.name,
-                conversationSummary: p.conversationSummary,
-                metOn: p.metOn,
-                confirmed: true
-              };
-            }))
-        });
-
-        fetch(
             "https://imo-8d4faadab8d7.herokuapp.com/omi/tasks?name=Satvik"
         ).then(async (res) => {
           const tasks = JSON.parse(await res.json()).tasks as {
             description: string,
             dueBy: number
           }[];
-
-          setTasks(tasks.map((t) => {
-            return {
-              description: t.description,
-              dueBy: t.dueBy ? new Date(t.dueBy) : null,
-            }
-          }));
         })
     }, []);
 
@@ -115,34 +92,38 @@ export default function ContactDirectory() {
                     {/* Left Column - Contact Cards */}
                     <div className="space-y-4">
                         {/* Stats Header */}
-                        <div className="text-left mb-4">
+                        <div className="text-left mb-4 flex flex-row items-center">
                             <p className="text-slate-600 dark:text-slate-400">
                                 <span className="font-semibold text-slate-900 dark:text-slate-100">
                                     {contacts.length}
                                 </span>{" "}
                                 contacts in your network
                                 {" • "}
-                                {contacts.filter((c) => !c.confirmed).length ===
-                                0 ? (
-                                    <span className="font-semibold text-green-600 dark:text-green-400">
-                                        All confirmed ✓
-                                    </span>
-                                ) : (
-                                    <>
-                                        <span className="font-semibold text-red-600 dark:text-red-400">
-                                            {
-                                                contacts.filter(
-                                                    (c) => !c.confirmed
-                                                ).length
-                                            }
-                                        </span>
-                                        <span className="font-semibold text-red-600 dark:text-red-400">
-                                            {" "}
-                                            unconfirmed
-                                        </span>
-                                    </>
-                                )}
                             </p>
+                            <Button
+                                className="ml-auto"
+                                onClick={async () => {
+                                    const params = new URLSearchParams();
+
+                                    contacts.forEach((c) => {
+                                        params.append(`profiles`, c.name);
+                                    });
+
+                                    fetch(
+                                        `https://imo-8d4faadab8d7.herokuapp.com/omi/profiles?name=Satvik&${params.toString()}`
+                                    ).then(async (res) => {
+                                        const profiles = JSON.parse(
+                                            await res.json()
+                                        ).profiles as Profile[];
+
+                                        updateProfiles({
+                                            profiles: profiles,
+                                        });
+                                    });
+                                }}
+                            >
+                                Re-index Profiles
+                            </Button>
                         </div>
                         {contacts.map((contact, index) => {
                             return (
@@ -162,23 +143,6 @@ export default function ContactDirectory() {
                                                     <CardTitle className="text-xl">
                                                         {contact.name}
                                                     </CardTitle>
-                                                    <div className="flex items-center gap-2 mt-1">
-                                                        {contact.confirmed ? (
-                                                            <Badge
-                                                                variant="outline"
-                                                                className="text-xs"
-                                                            >
-                                                                ✓ Confirmed
-                                                            </Badge>
-                                                        ) : (
-                                                            <Badge
-                                                                variant="secondary"
-                                                                className="text-xs"
-                                                            >
-                                                                Unconfirmed
-                                                            </Badge>
-                                                        )}
-                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -188,48 +152,16 @@ export default function ContactDirectory() {
                                         className={`transition-all duration-300 ease-in-out max-h-[1000px] opacity-100`}
                                     >
                                         <CardContent className="space-y-4 pt-0">
-                                            {/* Name Confirmation Section */}
-                                            {!contact.confirmed && (
-                                                <Alert className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
-                                                    <AlertDescription>
-                                                        <div className="space-y-3">
-                                                            <div className="text-sm font-medium text-blue-800 dark:text-blue-300">
-                                                                Is this name
-                                                                spelled
-                                                                correctly?
-                                                            </div>
-
-                                                                <div className="flex items-center gap-3">
-                                                                    <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                                                                        {
-                                                                            contact.name
-                                                                        }
-                                                                    </div>
-                                                                    <Button
-                                                                        onClick={(
-                                                                            e
-                                                                        ) => {
-                                                                            e.stopPropagation();
-                                                                        }}
-                                                                        size="icon"
-                                                                        variant="ghost"
-                                                                        className="h-8 w-8 text-blue-700 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900 shrink-0"
-                                                                        title="Edit name"
-                                                                    >
-                                                                        <Edit2 className="h-4 w-4" />
-                                                                    </Button>
-                                                                </div>
-                                                        </div>
-                                                    </AlertDescription>
-                                                </Alert>
-                                            )}
-
                                             {/* Date */}
                                             <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
                                                 <Calendar className="h-4 w-4" />
                                                 <span>
                                                     Met on{" "}
-                                                    {formatDate(new Date(contact.metOn))}
+                                                    {formatDate(
+                                                        new Date(
+                                                            contact.createdAt
+                                                        )
+                                                    )}
                                                 </span>
                                             </div>
 
@@ -252,7 +184,9 @@ export default function ContactDirectory() {
                                                 </CardHeader>
                                                 <CardContent>
                                                     <p className="text-slate-700 dark:text-slate-300 leading-relaxed">
-                                                        {contact.conversationSummary}
+                                                        {
+                                                            contact.conversationSummary
+                                                        }
                                                     </p>
                                                 </CardContent>
                                             </Card>
@@ -279,7 +213,16 @@ export default function ContactDirectory() {
                                         type="checkbox"
                                         className="w-5 h-5 accent-blue-600 dark:accent-blue-400"
                                     />
-                                    <span>{task.description} {task.dueBy != null ? <span className="font-bold text-red-500">({formatDate(task.dueBy)})</span> : <></>}</span>
+                                    <span>
+                                        {task.description}{" "}
+                                        {task.dueBy != null ? (
+                                            <span className="font-bold text-red-500">
+                                                ({formatDate(task.dueBy)})
+                                            </span>
+                                        ) : (
+                                            <></>
+                                        )}
+                                    </span>
                                 </li>
                             ))}
                         </ul>
