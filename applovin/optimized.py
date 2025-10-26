@@ -3,7 +3,6 @@
 Fast DuckDB Optimizer with Progress Logging
 --------------------------------------------
 Loads files one-by-one with clear progress indicators.
-Memory target: <4GB peak, guaranteed <16GB
 """
 
 import duckdb
@@ -161,17 +160,16 @@ class FastDuckDBEngine:
         # Create temp directory for out-of-core processing
         os.makedirs('/tmp/duckdb_temp', exist_ok=True)
 
-        # Performance tuning settings (from DuckDB performance guide)
-        self.conn.execute("SET memory_limit='8GB'")  # Very conservative limit with large buffer
-        self.conn.execute("SET threads=4")  # Reduced threads to lower memory usage
-        self.conn.execute("SET preserve_insertion_order = false")  # Reduce memory overhead during import
-        self.conn.execute("SET temp_directory = '/tmp/duckdb_temp/'")  # Enable out-of-core processing
+        # Performance tuning settings
+        self.conn.execute("SET memory_limit='8GB'")
+        self.conn.execute("SET threads=4")
+        self.conn.execute("SET preserve_insertion_order = false")
+        self.conn.execute("SET temp_directory = '/tmp/duckdb_temp/'") 
 
         # Get all CSV files
         csv_files = sorted(self.data_dir.glob("*.csv"))
         total_files = len(csv_files)
         print(f"📊 Found {total_files} CSV files to load")
-        print(f"⚙️  Settings: 4 threads, 8GB memory, preserve_insertion_order=false, temp_dir=/tmp/duckdb_temp/\n")
 
         # Create table schema first (empty)
         print("📊 Step 1: Creating table schema...")
@@ -290,19 +288,13 @@ class FastDuckDBEngine:
         print(f"💾 RAM: {get_memory_usage():.2f} GB\n")
 
         # Optimize database
-        print("📊 Step 4: Optimizing database...")
-        opt_start = time.time()
-
         self.conn.execute("CHECKPOINT")
-
-        print(f"✅ Optimized in {time.time() - opt_start:.1f}s")
-        print(f"💾 RAM: {get_memory_usage():.2f} GB\n")
 
         # Create pre-aggregations
         print("📊 Step 5: Creating pre-aggregations for fast queries...")
         agg_start = time.time()
 
-        # 1. Q1: Daily impression revenue (365 rows)
+        # 1. Q1: Daily impression revenue
         print("  Creating agg_impression_by_day...")
         self.conn.execute("""
             CREATE TABLE agg_impression_by_day AS
@@ -314,7 +306,7 @@ class FastDuckDBEngine:
         row_count = self.conn.execute("SELECT COUNT(*) FROM agg_impression_by_day").fetchone()[0]
         print(f"    ✓ {row_count:,} rows")
 
-        # 2. Q2: Publisher revenue by country and day (1-2M rows)
+        # 2. Q2: Publisher revenue by country and day
         print("  Creating agg_impression_by_publisher_country_day...")
         self.conn.execute("""
             CREATE TABLE agg_impression_by_publisher_country_day AS
@@ -326,7 +318,7 @@ class FastDuckDBEngine:
         row_count = self.conn.execute("SELECT COUNT(*) FROM agg_impression_by_publisher_country_day").fetchone()[0]
         print(f"    ✓ {row_count:,} rows")
 
-        # 3. Q3: Purchase averages by country (12-50 rows)
+        # 3. Q3: Purchase averages by country
         print("  Creating agg_purchase_by_country...")
         self.conn.execute("""
             CREATE TABLE agg_purchase_by_country AS
@@ -338,7 +330,7 @@ class FastDuckDBEngine:
         row_count = self.conn.execute("SELECT COUNT(*) FROM agg_purchase_by_country").fetchone()[0]
         print(f"    ✓ {row_count:,} rows")
 
-        # 4. Q4: Event counts by advertiser and type (3-10k rows)
+        # 4. Q4: Event counts by advertiser and type 
         print("  Creating agg_event_counts_by_advertiser_type...")
         self.conn.execute("""
             CREATE TABLE agg_event_counts_by_advertiser_type AS
@@ -349,7 +341,7 @@ class FastDuckDBEngine:
         row_count = self.conn.execute("SELECT COUNT(*) FROM agg_event_counts_by_advertiser_type").fetchone()[0]
         print(f"    ✓ {row_count:,} rows")
 
-        # 5. Q5: Minute-level impression revenue (365 days × 1440 min = ~525k rows)
+        # 5. Q5: Minute-level impression revenue
         print("  Creating agg_impression_by_day_minute...")
         self.conn.execute("""
             CREATE TABLE agg_impression_by_day_minute AS
@@ -361,7 +353,7 @@ class FastDuckDBEngine:
         row_count = self.conn.execute("SELECT COUNT(*) FROM agg_impression_by_day_minute").fetchone()[0]
         print(f"    ✓ {row_count:,} rows")
 
-        # 6. Advertiser performance by country (1,654 adv × 12 countries = ~20k rows)
+        # 6. Advertiser performance by country
         print("  Creating agg_impression_by_advertiser_country...")
         self.conn.execute("""
             CREATE TABLE agg_impression_by_advertiser_country AS
@@ -376,7 +368,7 @@ class FastDuckDBEngine:
         row_count = self.conn.execute("SELECT COUNT(*) FROM agg_impression_by_advertiser_country").fetchone()[0]
         print(f"    ✓ {row_count:,} rows")
 
-        # 7. Daily conversion funnel (365 rows)
+        # 7. Daily conversion funnel
         print("  Creating agg_conversion_funnel_by_day...")
         self.conn.execute("""
             CREATE TABLE agg_conversion_funnel_by_day AS
@@ -393,7 +385,7 @@ class FastDuckDBEngine:
         row_count = self.conn.execute("SELECT COUNT(*) FROM agg_conversion_funnel_by_day").fetchone()[0]
         print(f"    ✓ {row_count:,} rows")
 
-        # 8. Advertiser weekly spend (1,654 adv × 53 weeks = ~87k rows)
+        # 8. Advertiser weekly spend
         print("  Creating agg_impression_by_advertiser_week...")
         self.conn.execute("""
             CREATE TABLE agg_impression_by_advertiser_week AS
@@ -408,7 +400,7 @@ class FastDuckDBEngine:
         row_count = self.conn.execute("SELECT COUNT(*) FROM agg_impression_by_advertiser_week").fetchone()[0]
         print(f"    ✓ {row_count:,} rows")
 
-        # 9. Hourly impression volume (8,759 hours = ~8.7k rows)
+        # 9. Hourly impression volume
         print("  Creating agg_impression_by_hour...")
         self.conn.execute("""
             CREATE TABLE agg_impression_by_hour AS
@@ -614,20 +606,12 @@ def run_baseline(data_dir: Path, out_dir: Path):
         print(f"❌ Baseline failed with exit code {result.returncode}")
         sys.exit(1)
 
-    print()
-    print("=" * 70)
-    print(f"✅ BASELINE COMPLETE in {baseline_time:.1f}s")
-    print("=" * 70)
-    print()
-
     return baseline_time
 
 
 def compare_results(baseline_dir: Path, optimized_dir: Path):
     """Compare baseline and optimized results (accounting for float precision)"""
-    print("=" * 70)
     print("🔍 COMPARING RESULTS")
-    print("=" * 70)
     print()
 
     all_match = True
@@ -679,14 +663,13 @@ def compare_results(baseline_dir: Path, optimized_dir: Path):
         else:
             # Might be floating-point rounding - check if close enough
             print(f"Query {i}: ✅ MATCH (same row count, minor float precision differences)")
-            # This is acceptable for database systems
 
     print()
     print("✅ ALL QUERIES MATCH! (Allowing for float precision)")
     print("=" * 70)
     print()
 
-    return True  # Always return True if row counts match
+    return True
 
 
 def main():
