@@ -94,7 +94,7 @@ ALL QUERIES COMPLETE in 168.0ms
 ```
 
 Monitor graphs
-[insert image]
+![insert image](https://github.com/satvikprasad/imo-calhacks/blob/master/applovin/resource_usage-lite.png?raw=true)
 
 ### full dataset
 
@@ -125,7 +125,7 @@ ALL QUERIES COMPLETE in 381.8ms
 ```
 
 Graphs
-[insert image]
+![insert image](https://github.com/satvikprasad/imo-calhacks/blob/master/applovin/resource_usage.png?raw=true)
 
 ## 🏗️ Architecture
 
