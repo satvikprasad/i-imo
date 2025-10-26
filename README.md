@@ -38,6 +38,10 @@ ___ is your personal meeting intelligence assistant that:
 - ChromaDB for VectorDB and sematic search
 - OpenAI Text Embedding
 
+## Architecture
+<img width="1282" height="855" alt="image" src="https://github.com/user-attachments/assets/96eb66ad-cd64-4200-9816-2d2ac04b85ad" />
+
+
 ## Challenges we ran into
 
 - connection issues
