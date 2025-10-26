@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { api } from "../../../convex/_generated/api";
 import { useMutation, useQuery } from "convex/react";
+import CameraComponent from "@/components/CameraComponent";
 
 import { ArrowPathIcon } from "@heroicons/react/24/solid";
 
@@ -259,39 +260,42 @@ export default function ContactDirectory() {
 
                     {/* Right Column - Tasks Section */}
 
-                    <div className="bg-transparent">
-                        <div className="flex flex-row">
-                            <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 md-4">
-                                Tasks:
+                    <div className="p-6 space-y-6">
+                        {/* Camera Component */}
+                        <CameraComponent />
+
+                        {/* Tasks Section */}
+                        <Card>
+                          <CardContent>
+                            <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-6">
+                                Tasks
                             </h2>
-                            <Button className="ml-auto hover:cursor-pointer">
-                              Re-generate Tasks
-                              <ArrowPathIcon/>
-                            </Button>
-                        </div>
-                        <ul className="space-y-3 p-4 text-slate-700 dark:text-slate-300 text-lg">
-                            {tasks.map((task, index) => (
-                                <li
-                                    key={index}
-                                    className="flex items-center-safe gap-3"
-                                >
-                                    <input
-                                        type="checkbox"
-                                        className="w-5 h-5 accent-blue-600 dark:accent-blue-400"
-                                    />
-                                    <span>
-                                        {task.description}{" "}
-                                        {task.dueBy != null ? (
-                                            <span className="font-bold text-red-500">
-                                                ({formatDate(task.dueBy)})
-                                            </span>
-                                        ) : (
-                                            <></>
-                                        )}
-                                    </span>
-                                </li>
-                            ))}
-                        </ul>
+
+                            {tasks.length === 0 ? (
+                                <div className="text-center py-12 text-slate-500 dark:text-slate-400">
+                                    <Calendar className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                                    <p className="text-lg">No tasks yet</p>
+                                    <p className="text-sm">Your tasks will appear here</p>
+                                </div>
+                            ) : (
+                                <ul className="space-y-3 text-slate-700 dark:text-slate-300 text-lg">
+                                    {tasks.map((task, index) => (
+                                        <li
+                                            key={index}
+                                            className="flex items-start gap-3"
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                className="w-5 h-5 mt-1 accent-blue-600 dark:accent-blue-400"
+                                            />
+                                            <span>{task.description} {task.dueBy != null ? <span className="font-bold text-red-500">({formatDate(task.dueBy)})</span> : <></>}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                          </CardContent>
+                        </Card>
+                        
                         <Card>
                             <CardContent>
                                 <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-4">
