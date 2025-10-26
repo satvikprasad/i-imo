@@ -34,8 +34,8 @@ I-IMO is your personal meeting intelligence assistant that:
 - Convex Backend
 - Express Backend that process voice
 - Groq for audio transcribing
-- Digital Ocean AI Gradient for GPU instense task
-- ChromaDB for VectorDB and sematic search
+- Digital Ocean AI Gradient for GPU intense task
+- ChromaDB for VectorDB and semantic search
 - OpenAI Text Embedding
 
 ## Architecture
